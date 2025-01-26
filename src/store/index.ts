@@ -173,7 +173,7 @@ export const useStore = () => {
     const student = students.value.find(s => s.id === studentId)
     if (student) {
       const oldScore = student.dailyScore
-      const newScore = Math.max(0, Math.min(100, student.dailyScore + points))
+      const newScore = Math.max(0, student.dailyScore + points)
       
       // Update local state
       student.dailyScore = newScore
