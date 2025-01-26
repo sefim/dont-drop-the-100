@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import type { Student, ShopItem, ScoreLog, Category } from '../types'
 import { createClient } from '@supabase/supabase-js'
 
