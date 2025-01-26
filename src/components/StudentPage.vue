@@ -8,12 +8,12 @@
       </div>
     </div>
     <div class="scores">
-      <div class="score-box">
-        <p>ציון יומי</p>
+      <div class="score-item">
+        <p class="score-label">ציון יומי</p>
         <span class="score-value">{{ student.dailyScore }}</span>
       </div>
-      <div class="score-box">
-        <p>ציון שבועי</p>
+      <div class="score-item">
+        <p class="score-label">ציון שבועי</p>
         <span class="score-value">{{ student.weeklyScore }}</span>
       </div>
     </div>
@@ -199,27 +199,30 @@ onMounted(async () => {
 .scores {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin: 20px 0;
+  gap: 40px;
+  margin: 30px 0;
 }
 
-.score-box {
-  background: white;
-  border: 2px solid #42b883;
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 100px;
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.score-item {
+  text-align: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  min-width: 120px;
+}
+
+.score-label {
+  margin: 0;
+  color: #666;
+  font-size: 1.1em;
 }
 
 .score-value {
-  font-size: 1.8em;
+  display: block;
+  font-size: 2.5em;
   font-weight: bold;
   color: #42b883;
+  margin-top: 8px;
 }
 
 .categories-tabs {

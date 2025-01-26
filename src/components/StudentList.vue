@@ -159,11 +159,11 @@ onMounted(() => {
   padding: 16px;
   background: #f8f9fa;
   border-radius: 8px;
-  border: 2px solid #42b883;
 }
 
 .class-score h2 {
   margin: 0;
   color: #2c3e50;
+  font-size: 1.8em;
 }
 </style>
