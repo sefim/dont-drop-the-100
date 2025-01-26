@@ -2,37 +2,63 @@
   <div v-if="student" class="student-page">
     <div class="header">
       <div class="header-content">
-        <button class="back-button" @click="handleBack">חזור</button>
+        <button class="nav-button back-button" @click="handleBack">חזור</button>
         <h2 class="student-name">{{ student.name }}</h2>
-        <button @click="goToShop" class="shop-button">מימוש</button>
+        <button @click="goToShop" class="nav-button shop-button">מימוש</button>
       </div>
     </div>
-    <div class="scores" style="display: flex; gap: 20px; justify-content: center;">
-      <p>ציון יומי: {{ student.dailyScore }}</p>
-      <p>ציון שבועי: {{ student.weeklyScore }}</p>
+    <div class="scores">
+      <div class="score-box">
+        <p>ציון יומי</p>
+        <span class="score-value">{{ student.dailyScore }}</span>
+      </div>
+      <div class="score-box">
+        <p>ציון שבועי</p>
+        <span class="score-value">{{ student.weeklyScore }}</span>
+      </div>
     </div>
 
-    <div class="categories">
-      <div 
-        v-for="category in store.categories" 
-        :key="category.name"
-        :class="['category', category.type]"
-      >
-        <h3>{{ category.name }}</h3>
-        <div class="sub-categories">
-          <button
-            v-for="sub in category.subCategories"
-            :key="sub.name"
-            @click="handleScoreUpdate(sub.points, category.name, sub.name)"
-            class="sub-category"
-          >
-            {{ sub.name }} ({{ sub.points > 0 ? '+' : ''}}{{ sub.points }})
-          </button>
+    <div class="categories-tabs">
+      <div class="tabs">
+        <button 
+          v-for="category in store.categories" 
+          :key="category.name"
+          :class="[
+            'tab-button', 
+            { 
+              'active': activeTab === category.name,
+              'negative-tab': category.type === 'negative',
+              'positive-tab': category.type === 'positive'
+            }
+          ]"
+          @click="activeTab = category.name"
+        >
+          {{ category.name }}
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <div 
+          v-for="category in store.categories" 
+          :key="category.name"
+          v-show="activeTab === category.name"
+          :class="['category', category.type]"
+        >
+          <div class="sub-categories">
+            <button
+              v-for="sub in category.subCategories"
+              :key="sub.name"
+              @click="handleScoreUpdate(sub.points, category.name, sub.name)"
+              class="square-button sub-category"
+            >
+              {{ sub.name }}
+              <span class="points">{{ sub.points > 0 ? '+' : ''}}{{ sub.points }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Score Log List -->
     <div class="score-logs">
       <h3>היסטוריית פעולות</h3>
       <div class="log-entries">
@@ -45,7 +71,7 @@
             </span>
             <span class="log-time">{{ new Date(log.timestamp).toLocaleTimeString('he-IL') }}</span>
           </div>
-          <button @click="handleUndo(log)" class="undo-button">בטל</button>
+          <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
         </div>
       </div>
     </div>
@@ -62,6 +88,7 @@ const store = useStore()
 const route = useRoute()
 const router = useRouter()
 const scoreLogs = ref<ScoreLog[]>([])
+const activeTab = ref(store.categories[0].name)
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
 
@@ -77,7 +104,7 @@ const loadLogs = async () => {
 const handleScoreUpdate = async (points: number, category: string, subcategory: string) => {
   if (studentId.value) {
     await store.updateStudentScore(studentId.value, points, category, subcategory)
-    await loadLogs() // Refresh logs after update
+    await loadLogs()
   }
 }
 
@@ -85,7 +112,7 @@ const handleUndo = async (logEntry: ScoreLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
     const success = await store.undoAction(logEntry, studentId.value)
     if (success) {
-      await loadLogs() // Refresh logs after undo
+      await loadLogs()
     }
   }
 }
@@ -97,7 +124,7 @@ const goToShop = () => {
 }
 
 const handleBack = async () => {
-  await store.loadStudents() // Refresh data before navigating back
+  await store.loadStudents()
   router.push('/')
 }
 
@@ -110,6 +137,8 @@ onMounted(async () => {
 <style scoped>
 .student-page {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .header {
@@ -129,29 +158,130 @@ onMounted(async () => {
   text-align: center;
 }
 
-.back-button, .shop-button {
+.nav-button {
   padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.2;
+  min-width: 80px;
+}
+
+.square-button {
+  aspect-ratio: 1;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.back-button, .shop-button {
   background-color: #42b883;
   color: white;
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  min-width: 80px;
+  height: 40px;
 }
 
 .back-button:hover, .shop-button:hover {
   background-color: #3aa876;
+  transform: scale(1.05);
 }
 
-.categories {
-  display: grid;
+.scores {
+  display: flex;
+  justify-content: center;
   gap: 20px;
+  margin: 20px 0;
+}
+
+.score-box {
+  background: white;
+  border: 2px solid #42b883;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 100px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-value {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #42b883;
+}
+
+.categories-tabs {
   margin-top: 20px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: #f0f0f0;
+  padding: 4px;
+  border-radius: 8px 8px 0 0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: white;
+  color: #666;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.tab-button.active {
+  background: #42b883;
+  color: white;
+}
+
+.tab-button.negative-tab {
+  color: #e53935;
+}
+
+.tab-button.negative-tab.active {
+  background: #e53935;
+  color: white;
+}
+
+.tab-button.positive-tab {
+  color: #42b883;
+}
+
+.tab-button.positive-tab.active {
+  background: #42b883;
+  color: white;
+}
+
+.tab-button:hover:not(.active) {
+  background: #e8e8e8;
+}
+
+.tab-content {
+  padding: 20px;
 }
 
 .category {
-  padding: 15px;
+  padding: 16px;
   border-radius: 8px;
 }
 
@@ -165,22 +295,35 @@ onMounted(async () => {
 
 .sub-categories {
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
 }
 
 .sub-category {
-  padding: 8px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
   background-color: white;
-  transition: all 0.2s ease;
+  border: 2px solid currentColor;
+  min-height: 90px;
+  font-size: 0.85em;
+  flex-direction: column;
 }
 
 .sub-category:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.points {
+  font-size: 1.1em;
+  margin-top: 6px;
+  font-weight: bold;
+}
+
+.category.negative .sub-category {
+  color: #e53935;
+}
+
+.category.positive .sub-category {
+  color: #42b883;
 }
 
 .score-logs {
@@ -196,8 +339,7 @@ onMounted(async () => {
 }
 
 .log-entries {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 10px;
 }
 
@@ -205,10 +347,10 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   background: white;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .log-content {
@@ -244,13 +386,12 @@ onMounted(async () => {
 }
 
 .undo-button {
-  padding: 4px 8px;
   background: #ff4444;
   color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 0.85em;
 }
 
 .undo-button:hover {
