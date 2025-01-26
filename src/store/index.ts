@@ -41,7 +41,7 @@ export const useStore = () => {
         { name: "התייחסות מכבדת למורה", points: -5 },
         { name: "פגיעה אלימה", points: -5 },
         { name: "פגיעה אלימה בצחוק", points: -3 },
-        { name: "התייחסות מכבדת לחבר", points: -3 },
+        { name: "הלשנה", points: -3 },
         { name: "הקשבה לצוות", points: -3 },
         { name: "שמירה על רכוש בית ספר", points: -5 },
         { name: "שימוש מהטלפון", points: -4 },
