@@ -11,9 +11,18 @@
         @click="goToStudent(student.id)"
         class="student-button"
       >
-        <h3>{{ student.name }}</h3>
-        <p>ציון יומי: {{ student.dailyScore }}</p>
-        <p>ציון שבועי: {{ student.weeklyScore }}</p>
+        <div class="student-avatar">
+          <img 
+            :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${student.name}&backgroundColor=42b883`" 
+            :alt="`Avatar of ${student.name}`"
+            class="avatar-image"
+          />
+        </div>
+        <div class="student-info">
+          <h3>{{ student.name }}</h3>
+          <p>ציון יומי: {{ student.dailyScore }}</p>
+          <p>ציון שבועי: {{ student.weeklyScore }}</p>
+        </div>
       </button>
     </div>
     <div class="action-buttons">
@@ -46,7 +55,6 @@ const handleReset = async () => {
   }
 }
 
-// Load students when component mounts
 onMounted(() => {
   store.loadStudents()
 })
@@ -68,13 +76,50 @@ onMounted(() => {
 .student-button {
   padding: 20px;
   border: 2px solid #42b883;
-  border-radius: 8px;
+  border-radius: 12px;
   background: white;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s ease;
 }
 
 .student-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 184, 131, 0.2);
+}
+
+.student-avatar {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
   background: #f0f0f0;
+  border: 3px solid #42b883;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-info {
+  flex-grow: 1;
+  text-align: right;
+}
+
+.student-info h3 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 1.2em;
+}
+
+.student-info p {
+  margin: 4px 0;
+  color: #666;
 }
 
 .action-buttons {
@@ -88,9 +133,16 @@ onMounted(() => {
   background: #42b883;
   color: white;
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.end-day-button:hover {
+  background: #3aa876;
+  transform: translateY(-1px);
 }
 
 .reset-button {
@@ -99,5 +151,19 @@ onMounted(() => {
 
 .reset-button:hover {
   background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+.class-score {
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #42b883;
+}
+
+.class-score h2 {
+  margin: 0;
+  color: #2c3e50;
 }
 </style>
