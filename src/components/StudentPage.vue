@@ -64,12 +64,17 @@
       <div class="log-entries">
         <div v-for="log in scoreLogs" :key="log.id" class="log-entry">
           <div class="log-content">
-            <span class="log-category">{{ log.category }}</span>
-            <span class="log-subcategory">{{ log.subcategory }}</span>
-            <span :class="['log-points', log.points_change >= 0 ? 'positive' : 'negative']">
-              {{ log.points_change > 0 ? '+' : ''}}{{ log.points_change }}
-            </span>
-            <span class="log-time">{{ new Date(log.timestamp).toLocaleTimeString('he-IL') }}</span>
+            <div class="log-main">
+              <span class="log-category">{{ log.category }}</span>
+              <span class="log-subcategory">{{ log.subcategory }}</span>
+              <span :class="['log-points', log.points_change >= 0 ? 'positive' : 'negative']">
+                {{ log.points_change > 0 ? '+' : ''}}{{ log.points_change }}
+              </span>
+            </div>
+            <div class="log-datetime">
+              <span class="log-date">{{ formatDate(log.timestamp) }}</span>
+              <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+            </div>
           </div>
           <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
         </div>
@@ -96,6 +101,29 @@ const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
   return store.students.value.find(s => s.id === studentId.value)
 })
+
+const getHebrewDay = (date: Date) => {
+  const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+  return days[date.getDay()]
+}
+
+const formatDate = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const hebrewDay = getHebrewDay(date)
+  const formattedDate = date.toLocaleDateString('he-IL', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+  return `יום ${hebrewDay}, ${formattedDate}`
+}
+
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleTimeString('he-IL', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 const loadLogs = async () => {
   scoreLogs.value = await store.loadStudentLogs(studentId.value)
@@ -319,6 +347,7 @@ onMounted(async () => {
   font-size: 1.1em;
   margin-top: 6px;
   font-weight: bold;
+  direction: ltr;
 }
 
 .category.negative .sub-category {
@@ -358,6 +387,13 @@ onMounted(async () => {
 
 .log-content {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+
+.log-main {
+  display: flex;
   gap: 15px;
   align-items: center;
 }
@@ -373,6 +409,7 @@ onMounted(async () => {
 
 .log-points {
   font-weight: bold;
+  direction: ltr;
 }
 
 .log-points.positive {
@@ -383,9 +420,20 @@ onMounted(async () => {
   color: #e53935;
 }
 
+.log-datetime {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.log-date {
+  color: #666;
+}
+
 .log-time {
   color: #999;
-  font-size: 0.9em;
 }
 
 .undo-button {

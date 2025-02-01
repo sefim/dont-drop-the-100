@@ -28,6 +28,7 @@ export const useStore = () => {
       name: "נוכחות בכיתה",
       type: "negative",
       subCategories: [
+        { name: "אי הגעה", points: -100 },
         { name: "הישארות בכיתה", points: -3 },
         { name: "ישיבה במקום", points: -3 },
       ]

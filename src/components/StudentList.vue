@@ -1,6 +1,11 @@
 <template>
   <div class="student-list">
-    <h1>אל תפיל את ה 100 </h1>
+    <div class="header">
+      <h1>אל תפיל את ה 100</h1>
+    </div>
+    <div class="current-day">
+      <h2>{{ getCurrentDay() }}</h2>
+    </div>
     <div class="class-score">
       <h2>ציון שבועי: {{ store.classWeeklyScore }}</h2>
     </div>
@@ -45,6 +50,12 @@ const sortedStudents = computed(() => {
   return [...store.students.value].sort((a, b) => a.id - b.id)
 })
 
+const getCurrentDay = () => {
+  const days = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'יום שבת']
+  const today = new Date().getDay()
+  return days[today]
+}
+
 const goToStudent = (id: number) => {
   router.push(`/student/${id}`)
 }
@@ -64,6 +75,20 @@ onMounted(() => {
 .student-list {
   padding: 20px;
   text-align: center;
+}
+
+.current-day {
+  background: #42b883;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(66, 184, 131, 0.2);
+}
+
+.current-day h2 {
+  margin: 0;
+  font-size: 1.5em;
 }
 
 .students {
@@ -165,5 +190,12 @@ onMounted(() => {
   margin: 0;
   color: #2c3e50;
   font-size: 1.8em;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 </style>
