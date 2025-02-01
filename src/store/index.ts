@@ -269,6 +269,7 @@ export const useStore = () => {
     const { error } = await supabase
       .from('students')
       .update({ weekly_score: 0 })
+      .neq('id', 0)
     
     if (error) {
       console.error('Error resetting weekly scores:', error)
