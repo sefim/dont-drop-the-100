@@ -145,7 +145,7 @@ export const useStore = () => {
   ) => {
     const log: ScoreLog = {
       student_id: studentId,
-      action: points >= 0 ? 'increase' : 'decrease',
+      action: points > 0 ? 'increase' : 'decrease',
       points_change: points,
       timestamp: new Date().toISOString(),
       category,
