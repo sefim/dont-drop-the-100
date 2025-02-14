@@ -85,11 +85,7 @@
           </div>
           <div class="form-group">
             <label>בית ספר</label>
-            <select v-model="teacherForm.school_name" required>
-              <option v-for="school in schools" :key="school.id" :value="school.id">
-                {{ school.name }}
-              </option>
-            </select>
+            <input v-model="classForm.school_name" required />
           </div>
           <div class="modal-actions">
             <button type="submit" class="save-button">שמור</button>
