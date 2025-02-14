@@ -73,21 +73,15 @@ export interface AdminPageState {
   }
 }
 
-export interface School {
-  id: number
-  name: string
-}
-
 export interface Class {
   id: number
   name: string
-  school_id: number
+  school_name: string
 }
 
 export interface Teacher {
   id: string
-  email: string
-  school_id: number
+  name: string
   user_metadata?: {
     picture?: string
   }
