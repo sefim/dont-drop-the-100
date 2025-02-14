@@ -20,9 +20,6 @@ const router = createRouter({
       beforeEnter: async () => {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
-          if (session.user.user_metadata?.role === 'admin') {
-            return { path: '/admin' }
-          }
           return { path: '/dashboard' }
         }
         return { path: '/' }
@@ -60,24 +57,9 @@ router.beforeEach(async (to, from, next) => {
   const { data: { session } } = await supabase.auth.getSession()
 
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!session) {
-      next('/')
+    if (session) {
+      next('/dashboard')
       return
-    }
-    console.log('user role', session.user.user_metadata)
-    // Check if user is admin and trying to access non-admin pages
-    if (session.user.user_metadata?.email === 'sefi.maman@gmail.com' && to.path !== '/admin') {
-      next('/admin')
-      return
-    }
-
-    // Check if non-admin user is trying to access admin page
-    if (to.matched.some(record => record.meta.requiresAdmin)) {
-      const isAdmin = session.user.user_metadata?.role === 'admin'
-      if (!isAdmin) {
-        next('/dashboard')
-        return
-      }
     }
   }
   
