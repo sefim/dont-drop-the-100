@@ -39,7 +39,7 @@ const studentId = computed(() => parseInt(route.params.id as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
-  return store.students.value.find(s => s.id === studentId.value)
+  return store.students.value[studentId.value] || null
 })
 
 const purchaseItem = async (item: { name: string, cost: number }) => {

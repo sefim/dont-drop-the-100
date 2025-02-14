@@ -10,11 +10,11 @@
     <div class="scores">
       <div class="score-item">
         <p class="score-label">ציון יומי</p>
-        <span class="score-value">{{ student.dailyScore }}</span>
+        <span class="score-value">{{ student.dailyPoints }}</span>
       </div>
       <div class="score-item">
         <p class="score-label">ציון שבועי</p>
-        <span class="score-value">{{ student.weeklyScore }}</span>
+        <span class="score-value">{{ student.weeklyPoints }}</span>
       </div>
     </div>
 
@@ -72,8 +72,8 @@
               </span>
             </div>
             <div class="log-datetime">
-              <span class="log-date">{{ formatDate(log.timestamp) }}</span>
-              <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+              <span class="log-date">{{ formatDate(log.created_at) }}</span>
+              <span class="log-time">{{ formatTime(log.created_at) }}</span>
             </div>
           </div>
           <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
@@ -84,9 +84,9 @@
 </template>
 
 <script setup lang="ts">
-import { useStore } from '../store'
-import { useRoute, useRouter } from 'vue-router'
 import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useStore } from '../store'
 import type { ScoreLog } from '../types'
 
 const store = useStore()
@@ -99,7 +99,7 @@ const studentId = computed(() => parseInt(route.params.id as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
-  return store.students.value.find(s => s.id === studentId.value)
+  return store.students.value[studentId.value] || null
 })
 
 const getHebrewDay = (date: Date) => {
@@ -157,7 +157,7 @@ const handleBack = async () => {
 }
 
 onMounted(async () => {
-  await store.loadStudents()
+  await store.loadStudents(route.params.class_id)
   await loadLogs()
 })
 </script>
