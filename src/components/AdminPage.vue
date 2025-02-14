@@ -42,7 +42,7 @@
             />
             <div>
               <h3>{{ teacher.email }}</h3>
-              <p>בית ספר: {{ getSchoolName(teacher.school_id) }}</p>
+              <p>בית ספר: {{ teacher.school_name }}</p>
             </div>
           </div>
           <div class="card-actions">
@@ -85,7 +85,7 @@
           </div>
           <div class="form-group">
             <label>בית ספר</label>
-            <select v-model="teacherForm.school_id" required>
+            <select v-model="teacherForm.school_name" required>
               <option v-for="school in schools" :key="school.id" :value="school.id">
                 {{ school.name }}
               </option>
@@ -134,7 +134,7 @@ const editingTeacher = ref<Teacher | null>(null)
 
 // Form states
 const classForm = ref({ name: '', school_name: '' })
-const teacherForm = ref({ email: '', school_id: 0 })
+const teacherForm = ref({ email: '', school_name: 0 })
 
 // Load data
 const loadData = async () => {
@@ -243,7 +243,7 @@ const saveTeacher = async () => {
 const editTeacher = (teacher: Teacher) => {
   editingTeacher.value = teacher
   teacherForm.value.email = teacher.email
-  teacherForm.value.school_id = teacher.school_id
+  teacherForm.value.school_name = teacher.school_name
   showAddTeacher.value = true
 }
 
@@ -258,7 +258,7 @@ const cancelTeacher = () => {
   showAddTeacher.value = false
   editingTeacher.value = null
   teacherForm.value.email = ''
-  teacherForm.value.school_id = 0
+  teacherForm.value.school_name = ''
 }
 
 onMounted(loadData)
