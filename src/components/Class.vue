@@ -8,8 +8,8 @@
       <div class="header-info">
         <h2>אל תפיל את ה 100</h2>
         <div class="school-class-info">
-          <h3>בית ספר {{ store.currentClass?.school_name }}</h3>
-          <h3>כיתה {{ store.currentClass?.name }}</h3>
+          <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
+          <h3>כיתה {{ store.currentClass.value?.name }}</h3>
         </div>
       </div>
       <div v-if="state.user" class="user-info">
@@ -27,7 +27,7 @@
       <h2>{{ getCurrentDay() }}</h2>
     </div>
     <div class="class-score">
-      <h2>ציון שבועי: {{ store.currentClass?.points || 0 }}</h2>
+      <h2>ציון שבועי: {{ store.currentClass.value?.points || 0 }}</h2>
     </div>
     <div v-if="sortedStudents.length > 0" class="students">
       <button 

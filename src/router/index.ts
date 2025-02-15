@@ -53,10 +53,23 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(async (to, from, next) => {
-  const { data: { session } } = await supabase.auth.getSession()
+interface Session {
+  user: any;
+  access_token: string;
+  expires_in: number;
+  refresh_token: string;
+}
 
-  if (to.matched.some(record => record.meta.requiresAuth)) {
+interface SupabaseAuthResponse {
+  data: {
+    session: Session | null;
+  };
+}
+
+router.beforeEach(async (to: any, _from: any, next: any) => {
+  const { data: { session } }: SupabaseAuthResponse = await supabase.auth.getSession()
+
+  if (to.matched.some((record: any) => record.meta.requiresAuth)) {
     if (session) {
       next('/dashboard')
       return

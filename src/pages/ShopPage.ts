@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
-import type { ShopPageState } from './types'
+import type { ShopPageState } from '../types'
 
 export function useShopPage() {
   const store = useStore()
@@ -15,7 +15,7 @@ export function useShopPage() {
 
   const student = computed(() => {
     if (!studentId.value || !store.students.value) return null
-    return store.students.value.find(s => s.id === studentId.value)
+    return store.students.value[studentId.value]
   })
 
   const purchaseItem = async (item: { name: string, cost: number }) => {

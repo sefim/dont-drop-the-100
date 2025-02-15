@@ -23,6 +23,28 @@
       </div>
     </section>
 
+    <!-- Students Section -->
+    <section class="section">
+      <h2>תלמידים</h2>
+      <div class="actions">
+        <button @click="showAddStudent = true" class="add-button">
+          הוסף תלמיד
+        </button>
+      </div>
+      
+      <div class="grid">
+        <div v-for="student in students" :key="student.user_id" class="card">
+          <h3>{{ student.name }}</h3>
+          <p>כיתה: {{ getClassName(student.class_id) }}</p>
+          <p v-if="student.email">אימייל: {{ student.email }}</p>
+          <div class="card-actions">
+            <button @click="editStudent(student)" class="edit-button">ערוך</button>
+            <button @click="deleteStudent(student.user_id)" class="delete-button">מחק</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Teachers Section -->
     <section class="section">
       <h2>מורים</h2>
@@ -33,7 +55,7 @@
       </div>
       
       <div class="grid">
-        <div v-for="teacher in teachers" :key="teacher.id" class="card">
+        <div v-for="teacher in teachers" :key="teacher.user_id" class="card">
           <div class="teacher-info">
             <img 
               :src="teacher.user_metadata?.picture || 'https://api.dicebear.com/7.x/initials/svg?seed=' + teacher.email" 
@@ -47,7 +69,7 @@
           </div>
           <div class="card-actions">
             <button @click="editTeacher(teacher)" class="edit-button">ערוך</button>
-            <button @click="deleteTeacher(teacher.id)" class="delete-button">מחק</button>
+            <button @click="deleteTeacher(teacher.user_id)" class="delete-button">מחק</button>
           </div>
         </div>
       </div>
@@ -74,6 +96,35 @@
       </div>
     </div>
 
+    <!-- Add/Edit Student Modal -->
+    <div v-if="showAddStudent || editingStudent" class="modal">
+      <div class="modal-content">
+        <h2>{{ editingStudent ? 'ערוך תלמיד' : 'הוסף תלמיד' }}</h2>
+        <form @submit.prevent="saveStudent">
+          <div class="form-group">
+            <label>שם תלמיד</label>
+            <input v-model="studentForm.name" required />
+          </div>
+          <div class="form-group">
+            <label>אימייל (אופציונלי)</label>
+            <input type="email" v-model="studentForm.email" />
+          </div>
+          <div class="form-group">
+            <label>כיתה</label>
+            <select v-model="studentForm.class_id" required>
+              <option v-for="class_ in classes" :key="class_.id" :value="class_.id">
+                {{ class_.name }} - {{ class_.school_name }}
+              </option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="save-button">שמור</button>
+            <button type="button" @click="cancelStudent" class="cancel-button">בטל</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Add/Edit Teacher Modal -->
     <div v-if="showAddTeacher || editingTeacher" class="modal">
       <div class="modal-content">
@@ -85,7 +136,7 @@
           </div>
           <div class="form-group">
             <label>בית ספר</label>
-            <input v-model="classForm.school_name" required />
+            <input v-model="teacherForm.school_name" required />
           </div>
           <div class="modal-actions">
             <button type="submit" class="save-button">שמור</button>
@@ -107,53 +158,86 @@ interface Class {
   school_name: string
 }
 
-interface Teacher {
-  id: string
-  email: string
-  school_name : string
-  user_metadata?: {
-    picture?: string
-  }
+interface Student {
+  user_id: number
+  name: string
+  email?: string
+  class_id: number
 }
+
+
 
 // State
 const classes = ref<Class[]>([])
+const students = ref<Student[]>([])
 const teachers = ref<Teacher[]>([])
 
 // Modal states
 const showAddClass = ref(false)
+const showAddStudent = ref(false)
 const showAddTeacher = ref(false)
 
 // Editing states
 const editingClass = ref<Class | null>(null)
+const editingStudent = ref<Student | null>(null)
 const editingTeacher = ref<Teacher | null>(null)
 
 // Form states
 const classForm = ref({ name: '', school_name: '' })
-const teacherForm = ref({ email: '', school_name: 0 })
+const studentForm = ref({ name: '', email: '', class_id: 0 })
+const teacherForm = ref({ email: '', school_name: '' })
 
+interface Teacher {
+  user_id: number
+  name: string
+  email: string
+  school_name: string
+  user_metadata?: {
+    picture?: string
+  }
+}
 // Load data
 const loadData = async () => {
-
   // Load classes
   const { data: classesData } = await supabase
     .from('classes')
     .select('*')
   if (classesData) classes.value = classesData
-  console.log('loaded classes ', classes.value.length)
+
+  // Load students
+  const { data: studentsData } = await supabase
+    .from('users')
+    .select('user_id, name, email, class_users!inner(class_id)')
+    .eq('user_type', 'student')
+  
+  if (studentsData) {
+    students.value = studentsData.map(student => ({
+      user_id: student.user_id,
+      name: student.name,
+      email: student.email,
+      class_id: student.class_users[0].class_id
+    }))
+  }
+
   // Load teachers
   const { data: teachersData } = await supabase
     .from('users')
-    .select('*, auth.users!inner(email, raw_user_meta_data)')
+    .select('user_id, name, email')
+    .eq('user_type', 'teacher')
     
   if (teachersData) {
     teachers.value = teachersData.map(teacher => ({
-      id: teacher.id,
-      email: teacher.users.email,
-      school_name: teacher.school_name,
-      user_metadata: teacher.users.raw_user_meta_data
+      user_id: teacher.user_id,
+      name: teacher.name,
+      email: '',
+      school_name: ''
     }))
   }
+}
+
+const getClassName = (classId: number) => {
+  const class_ = classes.value.find(c => c.id === classId)
+  return class_ ? `${class_.name} - ${class_.school_name}` : 'לא נמצא'
 }
 
 // Class operations
@@ -203,32 +287,99 @@ const cancelClass = () => {
   classForm.value.school_name = ''
 }
 
+// Student operations
+const saveStudent = async () => {
+  if (editingStudent.value) {
+    // Update student name and email
+    await supabase
+      .from('users')
+      .update({ 
+        name: studentForm.value.name,
+        email: studentForm.value.email || null
+      })
+      .eq('user_id', editingStudent.value.user_id)
+
+    // Update class assignment
+    await supabase
+      .from('class_users')
+      .update({ class_id: studentForm.value.class_id })
+      .eq('user_id', editingStudent.value.user_id)
+  } else {
+    // Create new student user
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .insert([{
+        name: studentForm.value.name,
+        email: studentForm.value.email || null,
+        user_type: 'student'
+      }])
+      .select()
+
+    if (userError || !userData) {
+      console.error('Error creating student:', userError)
+      return
+    }
+
+    // Assign student to class
+    await supabase
+      .from('class_users')
+      .insert([{
+        user_id: userData[0].user_id,
+        class_id: studentForm.value.class_id
+      }])
+  }
+  
+  await loadData()
+  cancelStudent()
+}
+
+const editStudent = (student: Student) => {
+  editingStudent.value = student
+  studentForm.value.name = student.name
+  studentForm.value.email = student.email || ''
+  studentForm.value.class_id = student.class_id
+  showAddStudent.value = true
+}
+
+const deleteStudent = async (userId: number) => {
+  if (confirm('האם אתה בטוח שברצונך למחוק תלמיד זה?')) {
+    await supabase
+      .from('users')
+      .delete()
+      .eq('user_id', userId)
+    await loadData()
+  }
+}
+
+const cancelStudent = () => {
+  showAddStudent.value = false
+  editingStudent.value = null
+  studentForm.value.name = ''
+  studentForm.value.email = ''
+  studentForm.value.class_id = 0
+}
+
 // Teacher operations
 const saveTeacher = async () => {
   if (editingTeacher.value) {
     await supabase
       .from('users')
       .update({ school_name: teacherForm.value.school_name })
-      .eq('user_id', editingTeacher.value.id)
+      .eq('user_id', editingTeacher.value.user_id)
   } else {
-    // Create auth user with teacher role
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: teacherForm.value.email,
-      email_confirm: true,
-      user_metadata: { role: 'teacher' }
-    })
+    // Create new teacher user
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .insert([{
+        email: teacherForm.value.email,
+        school_name: teacherForm.value.school_name,
+        user_type: 'teacher'
+      }])
+      .select()
 
-    if (authError) {
-      alert('שגיאה ביצירת משתמש: ' + authError.message)
+    if (userError || !userData) {
+      console.error('Error creating teacher:', userError)
       return
-    }
-
-    if (authData.user) {
-      // Update teacher's school
-      await supabase
-        .from('users')
-        .update({ school_name: teacherForm.value.school_name })
-        .eq('user_id', authData.user.id)
     }
   }
   
@@ -238,14 +389,17 @@ const saveTeacher = async () => {
 
 const editTeacher = (teacher: Teacher) => {
   editingTeacher.value = teacher
-  teacherForm.value.email = teacher.email
-  teacherForm.value.school_name = teacher.school_name
+  teacherForm.value.email = teacher?.email
+  teacherForm.value.school_name = teacher?.school_name
   showAddTeacher.value = true
 }
 
-const deleteTeacher = async (id: string) => {
+const deleteTeacher = async (id: number) => {
   if (confirm('האם אתה בטוח שברצונך למחוק מורה זה?')) {
-    await supabase.auth.admin.deleteUser(id)
+    await supabase
+      .from('users')
+      .delete()
+      .eq('user_id', id)
     await loadData()
   }
 }

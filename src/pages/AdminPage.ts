@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { supabase } from '../supabaseClient'
-import type { AdminPageState, Class, Teacher } from './types'
+import type { AdminPageState, Class, Teacher } from '../types'
 
 export function useAdminPage() {
   const state = ref<AdminPageState>({
@@ -30,13 +30,12 @@ export function useAdminPage() {
     // Load teachers
     const { data: teachersData } = await supabase
       .from('users')
-      .select('*, auth.users!inner(email, raw_user_meta_data)')
+      .select('user_id, name')
       .eq('user_type', 'techer')
     if (teachersData) {
       state.value.teachers = teachersData.map(teacher => ({
-        id: teacher.user_id,
+        user_id: teacher.user_id,
         name: teacher.name,
-        user_metadata: teacher.users.raw_user_meta_data
       }))
     }
   }
@@ -94,9 +93,9 @@ export function useAdminPage() {
       await supabase
         .from('users')
         .update({ name: state.value.teacherForm.name })
-        .eq('id', state.value.editingTeacher.id)
+        .eq('user_id', state.value.editingTeacher.user_id)
     } else {
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      const { error: authError } = await supabase.auth.admin.createUser({
         email: state.value.teacherForm.email,
         email_confirm: true,
         user_metadata: { role: 'teacher' }
@@ -105,13 +104,6 @@ export function useAdminPage() {
       if (authError) {
         alert('שגיאה ביצירת משתמש: ' + authError.message)
         return
-      }
-
-      if (authData.user) {
-        await supabase
-          .from('teachers')
-          .update({ school_id: state.value.teacherForm.school_id })
-          .eq('id', authData.user.id)
       }
     }
     
@@ -136,7 +128,7 @@ export function useAdminPage() {
     state.value.showAddTeacher = false
     state.value.editingTeacher = null
     state.value.teacherForm.email = ''
-    state.value.teacherForm.school_id = 0
+    state.value.teacherForm.name = ''
   }
 
   return {

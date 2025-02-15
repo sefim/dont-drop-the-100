@@ -67,8 +67,8 @@
             <div class="log-main">
               <span class="log-category">{{ log.category }}</span>
               <span class="log-subcategory">{{ log.subcategory }}</span>
-              <span :class="['log-points', log.points_change >= 0 ? 'positive' : 'negative']">
-                {{ log.points_change > 0 ? '+' : ''}}{{ log.points_change }}
+              <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
+                {{ log.points > 0 ? '+' : ''}}{{ log.points }}
               </span>
             </div>
             <div class="log-datetime">
@@ -87,12 +87,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
-import type { ScoreLog } from '../types'
+import type { UserLog } from '../types'
 
 const store = useStore()
 const route = useRoute()
 const router = useRouter()
-const scoreLogs = ref<ScoreLog[]>([])
+const scoreLogs = ref<UserLog[]>([])
 const activeTab = ref(store.categories[0].name)
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
@@ -136,7 +136,7 @@ const handleScoreUpdate = async (points: number, category: string, subcategory: 
   }
 }
 
-const handleUndo = async (logEntry: ScoreLog) => {
+const handleUndo = async (logEntry: UserLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
     const success = await store.undoAction(logEntry, studentId.value)
     if (success) {
@@ -157,7 +157,7 @@ const handleBack = async () => {
 }
 
 onMounted(async () => {
-  await store.loadStudents(route.params.class_id)
+  await store.loadStudents(parseInt(route.params.class_id as string, 10))
   await loadLogs()
 })
 </script>

@@ -4,7 +4,7 @@
       <button class="back-button" @click="handleBack">חזור</button>
       <h2>חנות</h2>
     </div>
-    <p>נקודות זמינות: {{ student.weeklyScore }}</p>
+    <p>נקודות זמינות: {{ student.weeklyPoints }}</p>
 
     <div class="shop-items">
       <div 
@@ -17,8 +17,8 @@
         <p>מחיר: {{ item.cost }} נקודות</p>
         <div class="purchase-status">
           <span>לחץ לקנייה</span>
-          <span v-if="student.weeklyScore < item.cost" class="negative-warning">
-            (יגרום לחוב של {{ student.weeklyScore - item.cost }} נקודות)
+          <span v-if="student.weeklyPoints < item.cost" class="negative-warning">
+            (יגרום לחוב של {{ student.weeklyPoints - item.cost }} נקודות)
           </span>
         </div>
       </div>
@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { useStore } from '../store'
 import { useRoute, useRouter } from 'vue-router'
 import { computed, onMounted } from 'vue'
