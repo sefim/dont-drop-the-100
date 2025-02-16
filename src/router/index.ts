@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LoginPage from '../components/LoginPage.vue'
 import TeacherClasses from '../components/TeacherClasses.vue'
 import Class from '../components/Class.vue'
 import StudentPage from '../components/StudentPage.vue'
@@ -11,11 +12,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: Class
+      component: LoginPage
     },
     {
       path: '/auth/callback',
-      component: Class,
+      component: LoginPage,
       beforeEnter: async () => {
         const { data: { session } } = await supabase.auth.getSession()
         if (session) {
