@@ -5,6 +5,7 @@ import Class from '../components/Class.vue'
 import StudentPage from '../components/StudentPage.vue'
 import ShopPage from '../components/ShopPage.vue'
 import AdminPage from '../components/AdminPage.vue'
+import StudentProfilePage from '../components/StudentProfilePage.vue'
 import { supabase } from '../supabaseClient'
 
 const router = createRouter({
@@ -28,11 +29,21 @@ const router = createRouter({
     {
       path: '/dashboard',
       component: TeacherClasses,
-      meta: { requiresAuth: true }
+      name: 'teacher_classes',
+      meta: { requiresAuth: true },
+      beforeEnter: (to, from, next) => {
+        console.log(from)  
+        if (from.name === 'class') {
+          // Do something specific for navigation from PageA
+          to.meta.cameFrom = 'class'; // Set on route meta
+        }
+        next(); // Important: Call next() to proceed with navigation
+      }
     },
     {
       path: '/class/:id',
       component: Class,
+      name: 'class',
       meta: { requiresAuth: true }
     },
     {
@@ -48,30 +59,22 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminPage,
-      meta: { requiresAuth: true, requiresAdmin: true }
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/profile',
+      component: StudentProfilePage,
+      meta: { requiresAuth: true }
     }
   ]
 })
 
-interface Session {
-  user: any;
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-}
+router.beforeEach(async (to, from, next) => {
+  const { data: { session } } = await supabase.auth.getSession()
 
-interface SupabaseAuthResponse {
-  data: {
-    session: Session | null;
-  };
-}
-
-router.beforeEach(async (to: any, _from: any, next: any) => {
-  const { data: { session } }: SupabaseAuthResponse = await supabase.auth.getSession()
-
-  if (to.matched.some((record: any) => record.meta.requiresAuth)) {
-    if (session) {
-      next('/dashboard')
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!session) {
+      next('/admin')
       return
     }
   }

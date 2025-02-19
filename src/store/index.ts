@@ -112,7 +112,7 @@ export const useStore = () => {
         .select(`
           user_id,
           users!inner (
-            user_id,
+            id,
             name,
             user_points (
               daily_points,
@@ -121,8 +121,7 @@ export const useStore = () => {
           )
         `)
         .eq('class_id', classId)
-        .eq('users.user_type', 'student')
-        .not('users', 'is', null)
+        .eq('users.role', 'student')
       if (studentsError) {
         console.error('[loadStudents] Error fetching students:', studentsError)
         return
@@ -135,7 +134,7 @@ export const useStore = () => {
         studentsData.forEach(student => {
           console.log(`[loadStudents] Processing student: ${student.users[0].name}`)
           studentDict[student.user_id] = {
-            user_id: student.user_id,
+            id: student.user_id,
             name: student.users[0].name,
             dailyPoints: student.users[0].user_points[0].daily_points ?? 100,
             weeklyPoints: student.users[0].user_points[0].weekly_points ?? 0
@@ -376,14 +375,13 @@ export const useStore = () => {
       }
 
       const { error } = await supabase
-          .from('classes')
-          .update({ points: 0 })
-          .eq('id', classId)
+        .from('classes')
+        .update({ points: 0 })
+        .eq('id', classId)
 
       if (error) {
         console.error(`Error resetting points for class ${classId}:`, error)
       }
-    
 
       // Reload students to refresh the UI
       await loadStudents(classId)

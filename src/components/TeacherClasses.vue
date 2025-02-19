@@ -3,24 +3,34 @@
     <div class="header">
       <h1>אל תפיל את ה 100</h1>
       <div v-if="user" class="user-info">
-        <div class="avatar-tooltip">
+        <div class="avatar-menu">
           <img 
             :src="user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`" 
             :alt="user.user_metadata?.full_name || user.email"
             class="user-avatar"
+            @click="showMenu = !showMenu"
           />
-          <span class="tooltip-text">{{ user.user_metadata?.full_name || user.email }}</span>
+          <div v-if="showMenu" class="menu">
+            <button @click="handleLogout" class="menu-item">
+              התנתק
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <h2 class="section-title">הכיתות שלי</h2>
+    <div class="section-header">
+      <h2 class="section-title">הכיתות שלי</h2>
+      <button @click="showAddClass = true" class="add-button">
+        הוסף כיתה
+      </button>
+    </div>
+
     <div class="classes-grid">
       <div 
         v-for="class_ in classes" 
         :key="class_.id"
         class="class-card"
-        @click="goToClass(class_.id)"
       >
         <div class="class-header">
           <h2>{{ class_.name }}</h2>
@@ -29,6 +39,40 @@
         <div class="class-points">
           <h3>ציון כיתתי: {{ class_.points || 0 }}</h3>
         </div>
+        <div class="class-actions">
+          <button @click="goToClass(class_.id)" class="action-button view-button">
+            צפה בכיתה
+          </button>
+          <button @click="editClass(class_)" class="action-button edit-button">
+            ערוך
+          </button>
+          <button @click="deleteClass(class_.id)" class="action-button delete-button">
+            מחק
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Class Modal -->
+    <div v-if="showAddClass || editingClass" class="modal">
+      <div class="modal-content">
+        <h2>{{ editingClass ? 'ערוך כיתה' : 'הוסף כיתה חדשה' }}</h2>
+        <form @submit.prevent="saveClass">
+          <div class="form-group">
+            <label>שם כיתה</label>
+            <input v-model="classForm.name" required placeholder="הכנס שם כיתה" />
+          </div>
+          <div class="form-group">
+            <label>בית ספר</label>
+            <input v-model="classForm.school_name" required placeholder="הכנס שם בית ספר" />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="save-button">
+              {{ editingClass ? 'שמור שינויים' : 'הוסף כיתה' }}
+            </button>
+            <button type="button" @click="cancelClassModal" class="cancel-button">בטל</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -36,15 +80,33 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
 import type { User } from '@supabase/supabase-js'
-import type { Class } from '../types'
 
+interface Class {
+  id: number
+  name: string
+  school_name: string
+  points: number | null
+}
+
+interface ClassUserResponse {
+  classes: Class
+}
+
+const route = useRouter()
 const router = useRouter()
 const classes = ref<Class[]>([])
 const user = ref<User | null>(null)
- 
+const showMenu = ref(false)
+const showAddClass = ref(false)
+const editingClass = ref<Class | null>(null)
+const classForm = ref({
+  name: '',
+  school_name: ''
+})
+
 const loadClasses = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession()
@@ -54,36 +116,125 @@ const loadClasses = async () => {
 
     const { data: userData } = await supabase
       .from('users')
-      .select('user_id')
-      .eq('aut_user_id', session.user.id)
+      .select('id')
+      .eq('auth_user_id', session.user.id)
       .single()
-
+    
     if (!userData) return
 
     const { data: classesData } = await supabase
-      .from('classes')
+      .from('class_users')
       .select(`
+        classes (
           id,
           name,
           school_name,
-          points,
-          last_day,
-          class_users(user_id, class_id)
+          points
+        )
       `)
-      .eq('class_user.user_id', userData.user_id)
-
+      .eq('user_id', userData.id)
+    
     if (classesData) {
-      // If there's only one class, navigate directly to it
-      if (classesData.length === 1) {
-        router.push(`/class/${classesData[0].class_users[0].class_id}`)
-        return
-      }
-
-      classes.value = classesData
+      classes.value = classesData.map((item: ClassUserResponse) => item.classes)
     }
   } catch (error) {
     console.error('Error loading classes:', error)
   }
+}
+
+const saveClass = async () => {
+  try {
+    if (editingClass.value) {
+      // Update existing class
+      const { error } = await supabase
+        .from('classes')
+        .update({
+          name: classForm.value.name,
+          school_name: classForm.value.school_name
+        })
+        .eq('id', editingClass.value.id)
+
+      if (error) throw error
+    } else {
+      // Create new class
+      const { data: newClass, error: createError } = await supabase
+        .from('classes')
+        .insert({
+          name: classForm.value.name,
+          school_name: classForm.value.school_name
+        })
+        .select()
+        .single()
+
+      if (createError) throw createError
+
+      // Get current user's ID
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', user.value?.id)
+        .single()
+
+      if (!userData) throw new Error('User not found')
+
+      // Add user to class
+      const { error: linkError } = await supabase
+        .from('class_users')
+        .insert({
+          class_id: newClass.id,
+          user_id: userData.id
+        })
+
+      if (linkError) throw linkError
+    }
+
+    await loadClasses()
+    cancelClassModal()
+  } catch (error) {
+    console.error('Error saving class:', error)
+    alert('שגיאה בשמירת הכיתה. אנא נסה שוב.')
+  }
+}
+
+const editClass = (class_: Class) => {
+  editingClass.value = class_
+  classForm.value = {
+    name: class_.name,
+    school_name: class_.school_name
+  }
+  showAddClass.value = true
+}
+
+const deleteClass = async (classId: number) => {
+  if (confirm('האם אתה בטוח שברצונך למחוק כיתה זו?')) {
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId)
+
+      if (error) throw error
+
+      await loadClasses()
+    } catch (error) {
+      console.error('Error deleting class:', error)
+      alert('שגיאה במחיקת הכיתה. אנא נסה שוב.')
+    }
+  }
+}
+
+const cancelClassModal = () => {
+  showAddClass.value = false
+  editingClass.value = null
+  classForm.value = {
+    name: '',
+    school_name: ''
+  }
+}
+
+const handleLogout = async () => {
+  await supabase.auth.signOut()
+  router.push('/')
 }
 
 const goToClass = (classId: number) => {
@@ -116,12 +267,41 @@ onMounted(loadClasses)
   color: #2c3e50;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.add-button {
+  background: #42b883;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.add-button:hover {
+  background: #3aa876;
+  transform: translateY(-1px);
+}
+
 .user-info {
   display: flex;
   align-items: center;
 }
 
-.avatar-tooltip {
+.avatar-menu {
   position: relative;
   cursor: pointer;
 }
@@ -138,44 +318,34 @@ onMounted(loadClasses)
   transform: scale(1.1);
 }
 
-.tooltip-text {
-  visibility: hidden;
+.menu {
   position: absolute;
-  z-index: 1;
-  bottom: -30px;
-  right: 50%;
-  transform: translateX(50%);
-  background-color: #333;
-  color: white;
-  text-align: center;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.3s;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 150px;
+  overflow: hidden;
 }
 
-.tooltip-text::after {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  right: 50%;
-  margin-right: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent transparent #333 transparent;
-}
-
-.avatar-tooltip:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-}
-
-.section-title {
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  text-align: right;
+  border: none;
+  background: none;
   color: #2c3e50;
-  margin: 20px 0;
-  font-size: 1.5em;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.menu-item:hover {
+  background-color: #f8f9fa;
+  color: #42b883;
 }
 
 .classes-grid {
@@ -190,13 +360,6 @@ onMounted(loadClasses)
   border: 2px solid #42b883;
   border-radius: 12px;
   padding: 20px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.class-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 184, 131, 0.2);
 }
 
 .class-header {
@@ -218,11 +381,129 @@ onMounted(loadClasses)
   padding: 10px;
   background: #f8f9fa;
   border-radius: 8px;
+  margin-bottom: 15px;
 }
 
 .class-points h3 {
   margin: 0;
   color: #42b883;
   font-size: 1.2em;
+}
+
+.class-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.action-button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.view-button {
+  background: #42b883;
+  color: white;
+}
+
+.view-button:hover {
+  background: #3aa876;
+}
+
+.edit-button {
+  background: #4a90e2;
+  color: white;
+}
+
+.edit-button:hover {
+  background: #357abd;
+}
+
+.delete-button {
+  background: #e53935;
+  color: white;
+}
+
+.delete-button:hover {
+  background: #c62828;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.save-button {
+  background: #42b883;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover {
+  background: #3aa876;
+}
+
+.cancel-button {
+  background: #666;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-button:hover {
+  background: #555;
 }
 </style>
