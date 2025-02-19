@@ -52,7 +52,7 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/shop/:id',
+      path: '/shop/class/:classId/student/:id',
       component: ShopPage,
       meta: { requiresAuth: true }
     },
@@ -69,7 +69,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const { data: { session } } = await supabase.auth.getSession()
 
   if (to.matched.some(record => record.meta.requiresAuth)) {

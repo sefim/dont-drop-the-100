@@ -114,7 +114,7 @@ export const useStore = () => {
           users!inner (
             id,
             name,
-            user_points (
+            user_points!inner (
               daily_points,
               weekly_points
             )
@@ -131,15 +131,15 @@ export const useStore = () => {
 
       if (studentsData) {
         const studentDict: StudentDictionary = {}
-        studentsData.forEach(student => {
-          console.log(`[loadStudents] Processing student: ${student.users[0].name}`)
-          studentDict[student.user_id] = {
-            id: student.user_id,
-            name: student.users[0].name,
-            dailyPoints: student.users[0].user_points[0].daily_points ?? 100,
-            weeklyPoints: student.users[0].user_points[0].weekly_points ?? 0
+        studentsData.flatMap((item) => item.users).forEach(student => {
+          studentDict[student.id] = {
+            id: student.id,
+            name: student.name,
+            dailyPoints: student.user_points[0].daily_points ?? 100,
+            weeklyPoints: student.user_points[0].weekly_points ?? 0
           }
         })
+
         students.value = studentDict
         console.log('[loadStudents] Successfully loaded all students')
       }

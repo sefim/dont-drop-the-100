@@ -214,6 +214,106 @@ const showStudentMenu = (studentId: number) => {
   activeStudentMenu.value = activeStudentMenu.value === studentId ? null : studentId
 }
 
+const addStudent = async () => {
+  if (!classId.value) return
+
+  try {
+    let user_id = 0
+    if (studentForm.value.email) {
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: studentForm.value.email,
+        password: 'Password123!', // Default password
+        options: {
+          data: {
+            role: 'student',
+            name: studentForm.value.name
+          }
+        }
+      })
+      if (authError) throw authError
+      console.log(authData)
+      // get user record
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', authData.user?.id)
+        .single()
+
+      if (userError) throw userError
+      console.log(userData)
+      user_id = userData.id
+    }
+    else {
+      // Create user record
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          name: studentForm.value.name,
+          role: 'student'
+        })
+        .select()
+        .single()
+
+      if (userError) throw userError
+      console.log('insert user', userData)
+      user_id = userData.id
+    }
+      // Add user to class
+    const { error: classError } = await supabase
+      .from('class_users')
+      .insert({
+        class_id: classId.value,
+        user_id: user_id
+      })
+
+    if (classError) throw classError
+
+    // Initialize user points
+    const { error: pointsError } = await supabase
+      .from('user_points')
+      .insert({
+        user_id: user_id,
+        daily_points: 100,
+        weekly_points: 0
+      })
+
+    if (pointsError) throw pointsError
+
+    await store.loadStudents(classId.value)
+    showAddStudent.value = false
+    studentForm.value = { name: '', email: '' }
+  
+  } catch (error) {
+    console.error('Error adding student:', error)
+    alert('שגיאה בהוספת תלמיד. אנא נסה שוב.')
+  }
+}
+
+
+const saveClass = async () => {
+  if (!classId.value) return
+
+  try {
+    const { error } = await supabase
+      .from('classes')
+      .update({
+        name: classForm.value.name,
+        school_name: classForm.value.school_name
+      })
+      .eq('id', classId.value)
+
+    if (error) throw error
+
+    await store.loadStudents(classId.value)
+    showEditClass.value = false
+    showMenu.value = false
+  } catch (error) {
+    console.error('Error updating class:', error)
+    alert('שגיאה בעדכון הכיתה. אנא נסה שוב.')
+  }
+}
+
 const deleteStudent = async (studentId: number) => {
   if (!confirm('האם אתה בטוח שברצונך למחוק תלמיד זה?')) return
 
@@ -251,6 +351,18 @@ const deleteStudent = async (studentId: number) => {
     console.error('Error deleting student:', error)
     alert('שגיאה במחיקת התלמיד. אנא נסה שוב.')
   }
+}
+
+const cancelAddStudent = () => {
+  showAddStudent.value = false
+  studentForm.value = { name: '', email: '' }
+}
+
+const cancelEdit = () => {
+  showEditClass.value = false
+  showMenu.value = false
+  classForm.value.name = store.currentClass.value?.name || ''
+  classForm.value.school_name = store.currentClass.value?.school_name || ''
 }
 
 const handleLogout = async () => {

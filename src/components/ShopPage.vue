@@ -37,6 +37,7 @@ const route = useRoute()
 const router = useRouter()
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
+const classId = computed(() => parseInt(route.params.classId as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
@@ -50,13 +51,13 @@ const purchaseItem = async (item: { name: string, cost: number }) => {
 }
 
 const handleBack = async () => {
-  await store.loadStudents() // Refresh data before navigating back
-  router.push(`/student/${studentId.value}`)
+  await store.loadStudents(classId.value) // Refresh data before navigating back
+  router.push(`/class/${classId.value}/student/${studentId.value}`)
 }
 
 // Load students when component mounts
 onMounted(() => {
-  store.loadStudents()
+  store.loadStudents(classId.value)
 })
 </script>
 

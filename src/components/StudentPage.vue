@@ -96,6 +96,7 @@ const scoreLogs = ref<UserLog[]>([])
 const activeTab = ref(store.categories[0].name)
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
+const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
@@ -147,18 +148,23 @@ const handleUndo = async (logEntry: UserLog) => {
 
 const goToShop = () => {
   if (studentId.value) {
-    router.push(`/shop/${studentId.value}`)
+    router.push(`/shop/class/${classId.value}/student/${studentId.value}`)
   }
 }
 
 const handleBack = async () => {
-  await store.loadStudents()
-  router.push('/')
+  if (classId.value) {
+    router.push(`/class/${classId.value}`)
+  } else {
+    router.push('/dashboard')
+  }
 }
 
 onMounted(async () => {
-  await store.loadStudents(parseInt(route.params.class_id as string, 10))
-  await loadLogs()
+  if (classId.value) {
+    await store.loadStudents(classId.value)
+    await loadLogs()
+  }
 })
 </script>
 

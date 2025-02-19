@@ -72,6 +72,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../supabaseClient'
+import { useStore } from '../store'
 
 interface Student {
   user_id: number
@@ -95,6 +96,7 @@ const student = ref<Student | null>(null)
 const className = ref('')
 const showAvatarSelector = ref(false)
 const scoreLogs = ref<ScoreLog[]>([])
+const store = useStore()
 
 const avatarStyles = [
   'bottts',
@@ -140,59 +142,6 @@ const formatTime = (timestamp: string) => {
   })
 }
 
-const loadStudent = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return
-
-  // Get student data
-  const { data: userData } = await supabase
-    .from('users')
-    .select(`
-      user_id,
-      name,
-      email,
-      avatar_style,
-      user_points (
-        daily_points,
-        weekly_points
-      ),
-      class_users!inner (
-        class_id,
-        classes (
-          name,
-          school_name
-        )
-      )
-    `)
-    .eq('email', session.user.email)
-    .single()
-
-  if (userData) {
-    student.value = {
-      user_id: userData.user_id,
-      name: userData.name,
-      email: userData.email,
-      dailyPoints: userData.user_points[0].daily_points,
-      weeklyPoints: userData.user_points[0].weekly_points,
-      class_id: userData.class_users[0].class_id,
-      avatar_style: userData.avatar_style
-    }
-    className.value = `${userData.class_users[0].classes[0].name} - ${userData.class_users[0].classes[0].school_name}`
-
-    // Load score logs
-    const { data: logs } = await supabase
-      .from('user_logs')
-      .select('*')
-      .eq('user_id', userData.user_id)
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    if (logs) {
-      scoreLogs.value = logs
-    }
-  }
-}
-
 const selectAvatar = async (style: string) => {
   if (!student.value) return
 
@@ -205,7 +154,7 @@ const selectAvatar = async (style: string) => {
   showAvatarSelector.value = false
 }
 
-onMounted(loadStudent)
+onMounted(store.loadStudents)
 </script>
 
 <style scoped>

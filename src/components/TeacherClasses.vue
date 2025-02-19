@@ -80,7 +80,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
 import type { User } from '@supabase/supabase-js'
 
@@ -92,10 +92,9 @@ interface Class {
 }
 
 interface ClassUserResponse {
-  classes: Class
+  classes: Class[]
 }
 
-const route = useRouter()
 const router = useRouter()
 const classes = ref<Class[]>([])
 const user = ref<User | null>(null)
@@ -135,7 +134,7 @@ const loadClasses = async () => {
       .eq('user_id', userData.id)
     
     if (classesData) {
-      classes.value = classesData.map((item: ClassUserResponse) => item.classes)
+      classes.value = classesData.flatMap((item: ClassUserResponse) => item.classes)
     }
   } catch (error) {
     console.error('Error loading classes:', error)

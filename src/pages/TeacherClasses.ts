@@ -83,7 +83,7 @@ export function useTeacherClasses() {
             school_name
           )
         `)
-        .eq('user_id', userData.user_id)
+        .eq('user_id', userData.id)
 
       if (classesData) {
         // If there's only one class, navigate directly to it
