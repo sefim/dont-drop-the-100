@@ -8,7 +8,8 @@ export const useStore = () => {
   const classPoints = ref(0)
   const currentUser = ref<User | null>(null)
   const currentClass = ref<Class | null>(null)
-
+  const studentDict: StudentDictionary = {}
+  
   const categories: Category[] = [
     {
       name: "הגעה בזמן",
@@ -114,7 +115,7 @@ export const useStore = () => {
           users!inner (
             id,
             name,
-            user_points!inner (
+            user_points (
               daily_points,
               weekly_points
             )
@@ -126,20 +127,17 @@ export const useStore = () => {
         console.error('[loadStudents] Error fetching students:', studentsError)
         return
       }
-
-      console.log(`[loadStudents] Found ${studentsData?.length || 0} students`)
-
       if (studentsData) {
-        const studentDict: StudentDictionary = {}
         studentsData.flatMap((item) => item.users).forEach(student => {
+          let points = Array.isArray(student.user_points) ? student.user_points[0] : student.user_points;
+          
           studentDict[student.id] = {
             id: student.id,
             name: student.name,
-            dailyPoints: student.user_points[0].daily_points ?? 100,
-            weeklyPoints: student.user_points[0].weekly_points ?? 0
+            dailyPoints: points.daily_points ?? 100,
+            weeklyPoints: points.weekly_points ?? 0
           }
-        })
-
+        })  
         students.value = studentDict
         console.log('[loadStudents] Successfully loaded all students')
       }
