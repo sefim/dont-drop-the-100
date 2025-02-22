@@ -12,6 +12,7 @@ export function useStudentPage() {
     scoreLogs: []
   })
 
+  const classId = computed(() => parseInt(route.params.class_id as string, 10))
   const studentId = computed(() => parseInt(route.params.id as string, 10))
 
   const student = computed(() => {
@@ -48,7 +49,7 @@ export function useStudentPage() {
 
   const handleScoreUpdate = async (points: number, category: string, subcategory: string) => {
     if (studentId.value) {
-      await store.updateStudentScore(studentId.value, points, category, subcategory)
+      await store.updateStudentScore(studentId.value, classId.value, points, category, subcategory)
       await loadLogs()
     }
   }

@@ -213,10 +213,6 @@ const scoreReason = ref('')
 
 const classId = computed(() => {
   const id = Number(route.params.id)
-  if (!id || isNaN(id)) {
-    console.error('Invalid class ID:', route.params.id)
-    return null
-  }
   return id
 })
 
@@ -272,6 +268,7 @@ const updateStudentScore = async () => {
   try {
     await store.updateStudentScore(
       selectedStudent.value.id,
+      classId.value,
       scoreChange.value,
       'עדכון ידני',
       scoreReason.value

@@ -210,7 +210,7 @@ export const useStore = () => {
     }
   }
 
-  const updateStudentScore = async (studentId: number, points: number, category: string, subcategory: string) => {
+  const updateStudentScore = async (studentId: number, classId: number, points: number, category: string, subcategory: string) => {
     console.log(`[updateStudentScore] Updating score for student ${studentId}`)
     try {
       // First, ensure user_points record exists
@@ -228,6 +228,7 @@ export const useStore = () => {
           .from('user_points')
           .insert({
             user_id: studentId,
+            class_id: classId,
             daily_points: 100,
             weekly_points: 0,
             last_update: new Date().toISOString()
@@ -252,6 +253,7 @@ export const useStore = () => {
           last_update: new Date().toISOString()
         })
         .eq('user_id', studentId)
+        .eq('class_id', classId)
 
       if (updateError) {
         console.error('[updateStudentScore] Error updating points:', updateError)
@@ -263,6 +265,7 @@ export const useStore = () => {
         .from('user_logs')
         .insert({
           user_id: studentId,
+          class_id: classId,
           points,
           category,
           subcategory,

@@ -132,7 +132,7 @@ const loadLogs = async () => {
 
 const handleScoreUpdate = async (points: number, category: string, subcategory: string) => {
   if (studentId.value) {
-    await store.updateStudentScore(studentId.value, points, category, subcategory)
+    await store.updateStudentScore(studentId.value, classId.value, points, category, subcategory)
     await loadLogs()
   }
 }

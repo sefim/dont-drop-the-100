@@ -15,8 +15,8 @@
         </div>
         <div v-for="cls in classes" :key="cls.name">
           <div class="info-text">
-            <h2>{{ cls.name }}</h2>
-            <p>כיתה: {{ cls.school_name }}</p>
+            <h3>כיתה: {{ cls.name }}</h3>
+            <p>בית ספר: {{ cls.school_name }}</p>
             <p>ציון יומי: {{ cls?.dailyPoints }}</p>
             <p>ציון שבועי: {{ cls?.weeklyPoints }}</p>
           </div>
@@ -36,6 +36,10 @@
               <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
                 {{ log.points > 0 ? '+' : ''}}{{ log.points }}
               </span>
+            </div>
+            <div class="log-datetime">
+              <span class="log-date">כיתה: {{ log.classes.name }}</span>
+              <span class="log-date">מורה: {{ log.users.name }}</span>
             </div>
             <div class="log-datetime">
               <span class="log-date">{{ formatDate(log.created_at) }}</span>
@@ -183,21 +187,17 @@ const loadStudent = async () => {
 
     // Get classes data
     const { data: classData } = await supabase
-      .from('classes')
+      .from('class_users')
       .select(`
-        name,
-        school_name,
-        user_points!left (
-          daily_points,
-          weekly_points
-        )
+        classes (name, school_name),
+        users (user_points (daily_points, weekly_points))
       `)
       .eq('user_id', student.value.id)
       
     if (classData) {
       classes.value = classData.map((classData: any) => ({
-        name: classData.name,
-        school_name: classData.school_name,
+        name: classData.classes.name,
+        school_name: classData.classes.school_name,
         dailyPoints: classData.user_points?.daily_points,
         weeklyPoints: classData.user_points?.weekly_points
       }))
@@ -205,13 +205,22 @@ const loadStudent = async () => {
     // Load score logs
     const { data: logs } = await supabase
       .from('user_logs')
-      .select('*')
+      .select('id, points, category, subcategory, created_at, classes(name), users!log_by_user_id(name)')
       .eq('user_id', userData.id)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (logs) {
-      userLogs.value = logs
+      
+      userLogs.value = logs.map((log: any) => ({
+        id: log.id,
+        points: log.points,
+        category: log.category,
+        subcategory: log.subcategory,
+        created_at: log.created_at,
+        classes:  Array.isArray(log.classes) ? log.classes[0] : log.classes,
+        users: Array.isArray(log.users) ? log.users[0] : log.users
+      }))
     }
     generateAvatars()
   }

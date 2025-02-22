@@ -83,6 +83,7 @@ const loadPurchaseHistory = async () => {
     .from('user_logs')
     .select('*')
     .eq('user_id', studentId.value)
+    .eq('class_id', classId.value)
     .eq('category', 'רכישה')
     .order('created_at', { ascending: false })
     .gte('created_at', store.getDaysAgo())
@@ -100,6 +101,7 @@ const purchaseItem = async (item: { name: string, cost: number }) => {
   if (student.value) {
     await store.updateStudentScore(
       studentId.value,
+      classId.value,
       -item.cost,
       'רכישה',
       item.name

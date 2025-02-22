@@ -48,11 +48,12 @@ export interface ShopItem {
 
 export interface UserLog {
   id: number
-  user_id: number
   points: number
   category: string
   subcategory: string
   created_at: string
+  classes: {name: string}
+  users: {name: string}
 }
 
 export interface ClassWithLogs extends Class{
