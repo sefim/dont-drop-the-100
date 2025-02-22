@@ -13,12 +13,28 @@
             שנה דמות
           </button>
         </div>
-        <div v-for="cls in classes" :key="cls.name">
-          <div class="info-text">
-            <h3>כיתה: {{ cls.name }}</h3>
-            <p>בית ספר: {{ cls.school_name }}</p>
-            <p>ציון יומי: {{ cls?.dailyPoints }}</p>
-            <p>ציון שבועי: {{ cls?.weeklyPoints }}</p>
+        <div class="info-text">
+          <h2>{{ student?.name }}</h2>
+        </div>
+      </div>
+    </div>
+
+    <!-- Classes Section -->
+    <div class="classes-section">
+      <h2>הכיתות שלי</h2>
+      <div class="classes-grid">
+        <div v-for="class_ in classes" :key="class_.id" class="class-card">
+          <h3>כיתה: {{ class_.name }}</h3>
+          <p>בית ספר: {{ class_.school_name }}</p>
+          <div class="class-scores">
+            <div class="score-item">
+              <span class="score-label">ציון יומי:</span>
+              <span class="score-value">{{ class_.dailyPoints }}</span>
+            </div>
+            <div class="score-item">
+              <span class="score-label">ציון שבועי:</span>
+              <span class="score-value">{{ class_.weeklyPoints }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -94,6 +110,7 @@ interface Student {
 }
 
 interface Class {
+  id: number
   name: string
   school_name: string
   dailyPoints: number 
@@ -189,13 +206,14 @@ const loadStudent = async () => {
     const { data: classData } = await supabase
       .from('class_users')
       .select(`
-        classes (name, school_name),
+        classes (id, name, school_name),
         users (user_points (daily_points, weekly_points))
       `)
       .eq('user_id', student.value.id)
       
     if (classData) {
       classes.value = classData.map((classData: any) => ({
+        id: classData.classes.id,
         name: classData.classes.name,
         school_name: classData.classes.school_name,
         dailyPoints: classData.user_points?.daily_points,
