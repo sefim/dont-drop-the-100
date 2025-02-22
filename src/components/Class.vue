@@ -515,7 +515,10 @@ const initializeComponent = async () => {
       return
     }
 
-    await store.loadStudents(classId.value)
+    await Promise.all([
+      store.loadStudents(classId.value),
+      loadTeachers(classId.value)
+    ])
   } catch (error) {
     console.error('Error initializing component:', error)
     router.push('/')
