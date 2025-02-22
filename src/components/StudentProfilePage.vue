@@ -325,6 +325,65 @@ onMounted(loadStudent)
   color: #666;
 }
 
+/* Classes Section Styles */
+.classes-section {
+  margin: 40px 0;
+}
+
+.classes-section h2 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.classes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.class-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid #42b883;
+}
+
+.class-card h3 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+}
+
+.class-card p {
+  color: #666;
+  margin: 0 0 15px 0;
+}
+
+.class-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.score-label {
+  color: #666;
+}
+
+.score-value {
+  font-weight: bold;
+  color: #42b883;
+}
+
 /* History Section Styles */
 .history-section {
   margin-top: 40px;

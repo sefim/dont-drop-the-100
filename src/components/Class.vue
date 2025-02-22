@@ -37,6 +37,25 @@
         </div>
       </div>
     </div>
+    
+    <!-- Teachers Section -->
+    <div class="teachers-section">
+      <h3>מורי הכיתה</h3>
+      <div class="teachers-list">
+        <div v-for="teacher in teachers" :key="teacher.id" class="teacher-card">
+          <!--img 
+            :src="teacher.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${teacher.email}`" 
+            :alt="teacher.email"
+            class="teacher-avatar"
+          /-->
+          <div class="teacher-info">
+            <span class="teacher-name">{{ teacher.name }}</span>
+            <span class="teacher-email">{{ teacher.email }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="current-day">
       <h2>{{ getCurrentDay() }}</h2>
     </div>
@@ -180,6 +199,12 @@ import type { User } from '@supabase/supabase-js'
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
+const teachers = ref<Teacher[]>([])
+  interface Teacher {
+    id: number
+    name: string
+    email: string
+}
 
 interface State {
   isLoading: boolean
@@ -291,6 +316,33 @@ const cancelScoreUpdate = () => {
   selectedStudent.value = null
   scoreChange.value = 0
   scoreReason.value = ''
+}
+
+const loadTeachers = async (classId: number) => {
+  try {
+    const { data: teachersData } = await supabase
+      .from('class_users')
+      .select(`
+        users!inner (
+          id,
+          name,
+          email
+        )
+      `)
+      .eq('class_id', classId)
+      .eq('users.role', 'teacher')
+
+    if (teachersData) {
+      teachers.value = teachersData.flatMap((item) => item.users).map(
+        user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+      }))
+    }
+  } catch (error) {
+    console.error('Error loading teachers:', error)
+  }
 }
 
 const addStudent = async () => {
@@ -442,6 +494,7 @@ const checkTeacherClasses = async (userId: string) => {
     state.value.isSingleClass = classesData?.length === 1
   }
 }
+
 
 const initializeComponent = async () => {
   try {
