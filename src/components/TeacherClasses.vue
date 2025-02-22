@@ -160,7 +160,8 @@ const saveClass = async () => {
         .from('classes')
         .insert({
           name: classForm.value.name,
-          school_name: classForm.value.school_name
+          school_name: classForm.value.school_name,
+          points: 0,
         })
         .select()
         .single()

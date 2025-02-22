@@ -4,7 +4,7 @@
   </div>
   <div v-else class="student-list">
     <div class="header">
-      <button v-if="!state.isSingleClass" class="back-button" @click="goBack">חזור</button>
+      <button v-if="!state.isSingleClass" class="back-button" @click="goToClasses">חזור</button>
       <div class="header-info">
         <h2>אל תפיל את ה 100</h2>
         <div class="school-class-info">
@@ -52,7 +52,7 @@
         <div class="student-content" @click="goToStudent(student.id)">
           <div class="student-avatar">
             <img 
-              :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${student.name}&backgroundColor=42b883`" 
+              :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${student.avatar}&backgroundColor=42b883`" 
               :alt="`Avatar of ${student.name}`"
               class="avatar-image"
             />
@@ -68,6 +68,9 @@
             <span class="dots"></span>
           </button>
           <div v-if="activeStudentMenu === student.id" class="menu">
+            <button @click="showUpdateScore(student)" class="menu-item">
+              עדכן ציון
+            </button>
             <button @click="deleteStudent(student.id)" class="menu-item delete">
               מחק תלמיד
             </button>
@@ -75,7 +78,7 @@
         </div>
       </div>
     </div>
-    <div v-else class="no-students">
+    <div v-if="sortedStudents.length === 0" class="no-students">
       לא נמצאו תלמידים בכיתה זו
     </div>
     <div class="action-buttons">
@@ -129,6 +132,41 @@
         </div>
       </div>
     </div>
+    <!-- Update Score Modal -->
+    <div v-if="showScoreModal" class="modal">
+      <div class="modal-content">
+        <h2>עדכון ציון ל{{ selectedStudent?.name }}</h2>
+        <form @submit.prevent="updateStudentScore">
+          <div class="form-group">
+            <label>ציון יומי נוכחי: {{ selectedStudent?.dailyPoints }}</label>
+            <div class="score-input">
+              <input 
+                v-model.number="scoreChange" 
+                type="number" 
+                required
+                placeholder="הכנס שינוי בציון"
+              />
+              <span class="score-preview" :class="{ positive: scoreChange > 0, negative: scoreChange < 0 }">
+                ציון חדש: {{ selectedStudent ? selectedStudent.dailyPoints + (scoreChange || 0) : 0 }}
+              </span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>סיבה לשינוי</label>
+            <input 
+              v-model="scoreReason" 
+              type="text" 
+              required
+              placeholder="הכנס סיבה לשינוי הציון"
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="save-button">עדכן</button>
+            <button type="button" @click="cancelScoreUpdate" class="cancel-button">בטל</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,7 +181,6 @@ const route = useRoute()
 const router = useRouter()
 const store = useStore()
 
-  
 interface State {
   isLoading: boolean
   user: User | null
@@ -169,6 +206,11 @@ const classForm = computed(() => ({
   school_name: store.currentClass.value?.school_name || ''
 }))
 
+const showScoreModal = ref(false)
+const selectedStudent = ref<any>(null)
+const scoreChange = ref<number>(0)
+const scoreReason = ref('')
+
 const classId = computed(() => {
   const id = Number(route.params.id)
   if (!id || isNaN(id)) {
@@ -179,9 +221,15 @@ const classId = computed(() => {
 })
 
 const sortedStudents = computed(() => {
-  if (!store.students.value) return []
-  return Object.values(store.students.value).sort((a, b) => a.id - b.id)
-})
+  console.log("store.students.value:", store.students.value);
+  if (!store.students.value) return [];
+
+  const studentsArray = Object.values(store.students.value);
+  const sorted = studentsArray.sort((a, b) => a.id - b.id);
+  
+  console.log("Sorted students:", sorted);
+  return sorted;
+});
 
 const getCurrentDay = () => {
   const days = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'יום שבת']
@@ -195,12 +243,8 @@ const goToStudent = (id: number) => {
   }
 }
 
-const goBack = () => {
-  router.push('/dashboard')
-}
-
 const goToClasses = () => {
-  router.push('/dashboard')
+  router.push('/')
   showMenu.value = false
 }
 
@@ -214,42 +258,56 @@ const showStudentMenu = (studentId: number) => {
   activeStudentMenu.value = activeStudentMenu.value === studentId ? null : studentId
 }
 
+const showUpdateScore = (student: any) => {
+  selectedStudent.value = student
+  showScoreModal.value = true
+  activeStudentMenu.value = null
+  scoreChange.value = 0
+  scoreReason.value = ''
+}
+
+const updateStudentScore = async () => {
+  if (!selectedStudent.value || !scoreChange.value || !scoreReason.value) return
+
+  try {
+    await store.updateStudentScore(
+      selectedStudent.value.id,
+      scoreChange.value,
+      'עדכון ידני',
+      scoreReason.value
+    )
+
+    // Reload students to update the UI
+    if (classId.value) {
+      await store.loadStudents(classId.value)
+    }
+
+    cancelScoreUpdate()
+  } catch (error) {
+    console.error('Error updating score:', error)
+    alert('שגיאה בעדכון הציון. אנא נסה שוב.')
+  }
+}
+
+const cancelScoreUpdate = () => {
+  showScoreModal.value = false
+  selectedStudent.value = null
+  scoreChange.value = 0
+  scoreReason.value = ''
+}
+
 const addStudent = async () => {
   if (!classId.value) return
 
   try {
     let user_id = 0
-    if (studentForm.value.email) {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: studentForm.value.email,
-        password: 'Password123!', // Default password
-        options: {
-          data: {
-            role: 'student',
-            name: studentForm.value.name
-          }
-        }
-      })
-      if (authError) throw authError
-      console.log(authData)
-      // get user record
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', authData.user?.id)
-        .single()
-
-      if (userError) throw userError
-      console.log(userData)
-      user_id = userData.id
-    }
-    else {
+     {
       // Create user record
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
           name: studentForm.value.name,
+          email: studentForm.value.email,
           role: 'student'
         })
         .select()
@@ -283,7 +341,8 @@ const addStudent = async () => {
     await store.loadStudents(classId.value)
     showAddStudent.value = false
     studentForm.value = { name: '', email: '' }
-  
+    showMenu.value = false
+    
   } catch (error) {
     console.error('Error adding student:', error)
     alert('שגיאה בהוספת תלמיד. אנא נסה שוב.')
@@ -798,5 +857,24 @@ onMounted(initializeComponent)
 
 .cancel-button:hover {
   background: #555;
+}
+
+.score-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.score-preview {
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.score-preview.positive {
+  color: #42b883;
+}
+
+.score-preview.negative {
+  color: #e53935;
 }
 </style>

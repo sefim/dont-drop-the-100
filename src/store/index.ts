@@ -8,7 +8,8 @@ export const useStore = () => {
   const classPoints = ref(0)
   const currentUser = ref<User | null>(null)
   const currentClass = ref<Class | null>(null)
-  const studentDict: StudentDictionary = {}
+  const userState = ref('')
+
   
   const categories: Category[] = [
     {
@@ -115,6 +116,7 @@ export const useStore = () => {
           users!inner (
             id,
             name,
+            avatar,
             user_points (
               daily_points,
               weekly_points
@@ -127,6 +129,9 @@ export const useStore = () => {
         console.error('[loadStudents] Error fetching students:', studentsError)
         return
       }
+
+      console.log(`[loadStudents] Found ${studentsData?.length || 0} students`)
+      let studentDict: StudentDictionary = {}        
       if (studentsData) {
         studentsData.flatMap((item) => item.users).forEach(student => {
           let points = Array.isArray(student.user_points) ? student.user_points[0] : student.user_points;
@@ -135,7 +140,8 @@ export const useStore = () => {
             id: student.id,
             name: student.name,
             dailyPoints: points.daily_points ?? 100,
-            weeklyPoints: points.weekly_points ?? 0
+            weeklyPoints: points.weekly_points ?? 0,
+            avatar: student.avatar 
           }
         })  
         students.value = studentDict
@@ -434,6 +440,13 @@ export const useStore = () => {
     }
   }
 
+  const getDaysAgo = (days = 7) => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today.setDate(today.getDate() - days));
+    const isoDateString = sevenDaysAgo.toISOString().split('T')[0];
+    return isoDateString
+  }
+  
   return {
     students,
     classPoints,
@@ -448,6 +461,8 @@ export const useStore = () => {
     endDay,
     resetWeeklyScores,
     purchaseItem,
-    undoAction
+    undoAction,
+    getDaysAgo,
+    userState
   }
 }

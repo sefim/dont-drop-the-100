@@ -257,6 +257,7 @@ onMounted(async () => {
   font-weight: bold;
   color: #42b883;
   margin-top: 8px;
+  direction: ltr;
 }
 
 .categories-tabs {

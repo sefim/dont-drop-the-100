@@ -67,7 +67,7 @@ export function useTeacherClasses() {
       const { data: userData } = await supabase
         .from('users')
         .select('id, name')
-        .eq('aut_user_id', session.user.id)
+        .eq('auth_user_id', session.user.id)
         .single()
 
       if (!userData) return

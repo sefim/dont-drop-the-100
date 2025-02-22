@@ -5,7 +5,6 @@ export interface User {
 
 export interface DbUser extends User{
   auth_user_id?: string
-  user_type: string
 }
 
 export interface Teacher extends User {
@@ -15,6 +14,7 @@ export interface Teacher extends User {
 export interface Student extends User {
   dailyPoints: number;
   weeklyPoints: number;
+  avatar: string;
 }
 
 export interface StudentDictionary {

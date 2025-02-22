@@ -1,5 +1,6 @@
 <template>
-  <div class="login-container">
+  <!-- Loggin Modal -->
+  <div v-if="showConfirmModal" class="login-container">
     <h1>{{ isLogin ? 'התחברות' : 'הרשמה' }}</h1>
     
     <form @submit.prevent="handleSubmit">
@@ -48,52 +49,73 @@
         {{ isLogin ? 'הירשם' : 'התחבר' }}
       </button>
     </p>
+
+    <!-- Success Message -->
+    <div v-if="showSuccessMessage" class="success-message">
+      <p>ההרשמה בוצעה בהצלחה!</p>
+      <p>נשלח אליך מייל אימות לכתובת {{ registeredEmail }}</p>
+      <p>לאחר אימות המייל, אנא התחבר למערכת</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
+import { useStore } from '../store'
 
+const store = useStore()
 const router = useRouter()
 const email = ref('')
 const password = ref('')
 const name = ref('')
 const isLogin = ref(true)
-
+const showSuccessMessage = ref(false)
+const registeredEmail = ref('')
+const showConfirmModal = ref(true)
+  
 const handleSubmit = async () => {
   try {
     if (isLogin.value) {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: { user }, error } = await supabase.auth.signInWithPassword({
         email: email.value,
         password: password.value
       })
       
       if (error) throw error
+      
+      // Check if user is a student
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('email', user?.email)
+        .single()
+      
+      store.userState.value = userData?.role
+      console.log(store.userState.value)
+      router.go(0)
     } else {
       const { error } = await supabase.auth.signUp({
         email: email.value,
         password: password.value,
         options: {
           data: {
-            name: name.value,
-            role: 'student'
+            name: name.value
           }
         }
       })
       
       if (error) throw error
-      
-      alert('הרשמה בוצעה בהצלחה! אנא התחבר למערכת.')
+
+      registeredEmail.value = email.value
+      showSuccessMessage.value = true
       isLogin.value = true
       email.value = ''
       password.value = ''
       name.value = ''
       return
     }
-    
-    router.push('/dashboard')
   } catch (error) {
     console.error('Error:', error)
     alert(isLogin.value ? 'שגיאה בהתחברות. אנא נסה שוב.' : 'שגיאה בהרשמה. אנא נסה שוב.')
@@ -120,12 +142,6 @@ const handleGoogleLogin = async () => {
   }
 }
 
-onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
-    router.push('/dashboard')
-  }
-})
 </script>
 
 <style scoped>
@@ -187,5 +203,25 @@ onMounted(async () => {
 
 button:hover {
   opacity: 0.9;
+}
+
+/* Success Message Styles */
+.success-message {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e8f5e9;
+  border: 1px solid #42b883;
+  border-radius: 4px;
+  text-align: center;
+  color: #2c3e50;
+}
+
+.success-message p {
+  margin: 5px 0;
+}
+
+.success-message p:first-child {
+  font-weight: bold;
+  color: #42b883;
 }
 </style>
