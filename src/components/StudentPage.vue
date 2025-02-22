@@ -156,7 +156,7 @@ const handleBack = async () => {
   if (classId.value) {
     router.push(`/class/${classId.value}`)
   } else {
-    router.push('/dashboard')
+    router.push('/')
   }
 }
 

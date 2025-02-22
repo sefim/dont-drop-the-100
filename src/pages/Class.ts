@@ -23,7 +23,7 @@ export function useClass() {
   }
 
   const goBack = () => {
-    router.push('/dashboard')
+    router.push('/')
   }
 
   const handleReset = async (classId: number) => {
@@ -41,14 +41,14 @@ export function useClass() {
           await store.loadStudents(classId)
         } else {
           console.error('Invalid class ID')
-          router.push('/dashboard')
+          router.push('/')
         }
       } else {
         router.push('/')
       }
     } catch (error) {
       console.error('Error initializing component:', error)
-      router.push('/dashboard')
+      router.push('/')
     } finally {
       state.value.isLoading = false
     }

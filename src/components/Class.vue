@@ -461,14 +461,14 @@ const initializeComponent = async () => {
 
     if (!classId.value) {
       console.error('Invalid class ID')
-      router.push('/dashboard')
+      router.push('/')
       return
     }
 
     await store.loadStudents(classId.value)
   } catch (error) {
     console.error('Error initializing component:', error)
-    router.push('/dashboard')
+    router.push('/')
   } finally {
     state.value.isLoading = false
   }
