@@ -1,22 +1,57 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import StudentList from '../components/StudentList.vue'
+import LandingPage from '../components/LandingPage.vue'
+import CategoryManager from '../components/CategoryManager.vue'
+import Class from '../components/Class.vue'
 import StudentPage from '../components/StudentPage.vue'
 import ShopPage from '../components/ShopPage.vue'
+import ShopManager from '../components/ShopManager.vue'
+import AdminPage from '../components/AdminPage.vue'
+
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
       path: '/',
-      component: StudentList
+      component: LandingPage
     },
     {
-      path: '/student/:id',
-      component: StudentPage
+      path: '/class/:class_id/category',
+      component: CategoryManager,
+      meta: { requiresAuth: false },
     },
     {
-      path: '/shop/:id',
-      component: ShopPage
+      path: '/class/:class_id/shop',
+      component: ShopManager,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/auth/callback',
+      component: LandingPage,
+    },
+    {
+      path: '/class/:id',
+      component: Class,
+      name: 'class',
+      meta: { requiresAuth: true },
+      props: true
+    },
+    {
+      path: '/class/:class_id/student/:id',
+      component: StudentPage,
+      name: 'student',
+      meta: { requiresAuth: true },
+      props: true
+    },
+    {
+      path: '/shop/class/:classId/student/:id',
+      component: ShopPage,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      component: AdminPage,
+      meta: { requiresAuth: true }
     }
   ]
 })

@@ -10,28 +10,28 @@
     <div class="scores">
       <div class="score-item">
         <p class="score-label">ציון יומי</p>
-        <span class="score-value">{{ student.dailyScore }}</span>
+        <span class="score-value">{{ student.dailyPoints }}</span>
       </div>
       <div class="score-item">
         <p class="score-label">ציון שבועי</p>
-        <span class="score-value">{{ student.weeklyScore }}</span>
+        <span class="score-value">{{ student.weeklyPoints }}</span>
       </div>
     </div>
 
     <div class="categories-tabs">
       <div class="tabs">
         <button 
-          v-for="category in store.categories" 
-          :key="category.name"
+          v-for="category in categoryStore.categories" 
+          :key="category.id"
           :class="[
             'tab-button', 
             { 
-              'active': activeTab === category.name,
+              'active': activeTab === category.id,
               'negative-tab': category.type === 'negative',
               'positive-tab': category.type === 'positive'
             }
           ]"
-          @click="activeTab = category.name"
+          @click="activeTab = category.id"
         >
           {{ category.name }}
         </button>
@@ -39,15 +39,15 @@
 
       <div class="tab-content">
         <div 
-          v-for="category in store.categories" 
-          :key="category.name"
-          v-show="activeTab === category.name"
+          v-for="category in categoryStore.categories" 
+          :key="category.id"
+          v-show="activeTab === category.id"
           :class="['category', category.type]"
         >
           <div class="sub-categories">
             <button
-              v-for="sub in category.subCategories"
-              :key="sub.name"
+              v-for="sub in getSubcategoriesForCategory(category.id)"
+              :key="sub.id"
               @click="handleScoreUpdate(sub.points, category.name, sub.name)"
               class="square-button sub-category"
             >
@@ -67,13 +67,13 @@
             <div class="log-main">
               <span class="log-category">{{ log.category }}</span>
               <span class="log-subcategory">{{ log.subcategory }}</span>
-              <span :class="['log-points', log.points_change >= 0 ? 'positive' : 'negative']">
-                {{ log.points_change > 0 ? '+' : ''}}{{ log.points_change }}
+              <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
+                {{ log.points > 0 ? '+' : ''}}{{ log.points }}
               </span>
             </div>
             <div class="log-datetime">
-              <span class="log-date">{{ formatDate(log.timestamp) }}</span>
-              <span class="log-time">{{ formatTime(log.timestamp) }}</span>
+              <span class="log-date">{{ formatDate(log.created_at) }}</span>
+              <span class="log-time">{{ formatTime(log.created_at) }}</span>
             </div>
           </div>
           <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
@@ -84,23 +84,30 @@
 </template>
 
 <script setup lang="ts">
-import { useStore } from '../store'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { computed, onMounted, ref } from 'vue'
-import type { ScoreLog } from '../types'
+import { useStore } from '../store'
+import { useCategoryStore } from '../store/categoryStore'
+import type { UserLog } from '../types'
 
-const store = useStore()
 const route = useRoute()
 const router = useRouter()
-const scoreLogs = ref<ScoreLog[]>([])
-const activeTab = ref(store.categories[0].name)
+const store = useStore()
+const categoryStore = useCategoryStore()
+const scoreLogs = ref<UserLog[]>([])
+const activeTab = ref<number | null>(null)
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
+const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
-  return store.students.value.find(s => s.id === studentId.value)
+  return store.students.value[studentId.value] || null
 })
+
+const getSubcategoriesForCategory = (categoryId: number) => {
+  return categoryStore.subCategories.filter(sub => sub.category_id === categoryId && sub.is_selected)
+}
 
 const getHebrewDay = (date: Date) => {
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
@@ -131,12 +138,12 @@ const loadLogs = async () => {
 
 const handleScoreUpdate = async (points: number, category: string, subcategory: string) => {
   if (studentId.value) {
-    await store.updateStudentScore(studentId.value, points, category, subcategory)
+    await store.updateStudentScore(studentId.value, classId.value, points, category, subcategory)
     await loadLogs()
   }
 }
 
-const handleUndo = async (logEntry: ScoreLog) => {
+const handleUndo = async (logEntry: UserLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
     const success = await store.undoAction(logEntry, studentId.value)
     if (success) {
@@ -147,19 +154,44 @@ const handleUndo = async (logEntry: ScoreLog) => {
 
 const goToShop = () => {
   if (studentId.value) {
-    router.push(`/shop/${studentId.value}`)
+    router.push(`/shop/class/${classId.value}/student/${studentId.value}`)
   }
 }
 
 const handleBack = async () => {
-  await store.loadStudents()
-  router.push('/')
+  if (classId.value) {
+    router.push(`/class/${classId.value}`)
+  } else {
+    router.push('/')
+  }
 }
 
-onMounted(async () => {
-  await store.loadStudents()
-  await loadLogs()
+const initializeComponent = async () => {
+  if (classId.value) {
+    try {
+      await Promise.all([
+        store.loadStudents(classId.value),
+        categoryStore.loadCategories(classId.value),
+        loadLogs()
+      ])
+
+      // Set initial active tab to first category if available
+      if (categoryStore.categories.length > 0) {
+        activeTab.value = categoryStore.categories[0].id
+      }
+    } catch (error) {
+      console.error('Error initializing component:', error)
+    }
+  }
+}
+
+watch(() => route.params.class_id, async (newClassId) => {
+  if (newClassId) {
+    await initializeComponent()
+  }
 })
+
+onMounted(initializeComponent)
 </script>
 
 <style scoped>
@@ -251,6 +283,7 @@ onMounted(async () => {
   font-weight: bold;
   color: #42b883;
   margin-top: 8px;
+  direction: ltr;
 }
 
 .categories-tabs {
