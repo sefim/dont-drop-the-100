@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../components/LandingPage.vue'
+import CategoryManager from '../components/CategoryManager.vue'
 import Class from '../components/Class.vue'
 import StudentPage from '../components/StudentPage.vue'
 import ShopPage from '../components/ShopPage.vue'
+import ShopManager from '../components/ShopManager.vue'
 import AdminPage from '../components/AdminPage.vue'
 
 
@@ -12,6 +14,16 @@ const router = createRouter({
     {
       path: '/',
       component: LandingPage
+    },
+    {
+      path: '/class/:class_id/category',
+      component: CategoryManager,
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/class/:class_id/shop',
+      component: ShopManager,
+      meta: { requiresAuth: true },
     },
     {
       path: '/auth/callback',

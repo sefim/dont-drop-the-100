@@ -32,7 +32,7 @@
         .select('role')
         .eq('auth_user_id', user.id)
         .single()
-  
+      console.log('userData = ', userData)
       store.userState.value = userData?.role ?? 'Login'
       console.log('store.userState', store.userState.value)
   }

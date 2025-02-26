@@ -25,10 +25,39 @@
       </div>
     </div>
 
+
+    <div class="score-logs">
+      <h3>היסטוריית רכישות אחרונות</h3>
+      
+      <div class="log-entries">
+        <div v-for="log in purchases" :key="log.id" class="log-entry">
+          <div class="log-content">
+            
+            <div class="log-main">
+              <span class="log-category">{{ log.category }}</span>
+              <span class="log-subcategory">{{ log.subcategory }}</span>
+              <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
+                {{ log.points > 0 ? '+' : ''}}{{ log.points }}
+              </span>
+            </div>
+            
+            <div class="log-datetime">
+              <span class="log-date">{{ formatDate(log.created_at) }}</span>
+              <span class="log-time">{{ formatTime(log.created_at) }}</span>
+            </div>
+          </div>
+          
+          <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
+        </div>
+      </div>
+    </div>
+
+
+
     <div class="shop-items">
       <div 
-        v-for="item in store.shopItems" 
-        :key="item.name"
+        v-for="item in shopStore.items" 
+        :key="item.id"
         class="shop-item"
         @click="purchaseItem(item)"
       >
@@ -49,10 +78,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
+import { useShopStore } from '../store/shopStore'
 import { supabase } from '../supabaseClient'
 import type { UserLog } from '../types'
 
 const store = useStore()
+const shopStore = useShopStore()
 const route = useRoute()
 const router = useRouter()
 const purchases = ref<UserLog[]>([])
@@ -64,13 +95,26 @@ const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
   return store.students.value[studentId.value] || null
 })
-
+const handleUndo = async (logEntry: UserLog) => {
+  if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
+    const success = await store.undoAction(logEntry, studentId.value)
+    if (success) {
+      await loadLogs()
+    }
+  }
+}
 const formatDate = (timestamp: string) => {
   const date = new Date(timestamp)
   return date.toLocaleDateString('he-IL', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleTimeString('he-IL', {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -99,12 +143,10 @@ const loadPurchaseHistory = async () => {
 
 const purchaseItem = async (item: { name: string, cost: number }) => {
   if (student.value) {
-    await store.updateStudentScore(
+    await store.purchaseItem(
       studentId.value,
       classId.value,
-      -item.cost,
-      'רכישה',
-      item.name
+      item,
     )
     await loadPurchaseHistory()
   }
@@ -116,8 +158,11 @@ const handleBack = async () => {
 }
 
 onMounted(async () => {
-  await store.loadStudents(classId.value)
-  await loadPurchaseHistory()
+  await Promise.all([
+    store.loadStudents(classId.value),
+    shopStore.loadItems(),
+    loadPurchaseHistory()
+  ])
 })
 </script>
 
@@ -252,5 +297,96 @@ h3 {
 p {
   color: #666;
   margin: 8px 0;
+}
+
+.score-logs {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.score-logs h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+}
+
+.log-entries {
+  display: grid;
+  gap: 10px;
+}
+
+.log-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.log-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+
+.log-main {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.log-category {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.log-subcategory {
+  color: #666;
+}
+
+.log-points {
+  font-weight: bold;
+  direction: ltr;
+}
+
+.log-points.positive {
+  color: #42b883;
+}
+
+.log-points.negative {
+  color: #e53935;
+}
+
+.log-datetime {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.log-date {
+  color: #666;
+}
+
+.log-time {
+  color: #999;
+}
+
+.undo-button {
+  background: #ff4444;
+  color: white;
+  border: none;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 0.85em;
+}
+
+.undo-button:hover {
+  background: #cc0000;
 }
 </style>

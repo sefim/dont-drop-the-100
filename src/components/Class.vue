@@ -4,14 +4,6 @@
   </div>
   <div v-else class="student-list">
     <div class="header">
-      <button v-if="!state.isSingleClass" class="back-button" @click="goToClasses">חזור</button>
-      <div class="header-info">
-        <h2>אל תפיל את ה 100</h2>
-        <div class="school-class-info">
-          <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
-          <h3>כיתה {{ store.currentClass.value?.name }}</h3>
-        </div>
-      </div>
       <div v-if="state.user" class="user-info">
         <div class="avatar-menu">
           <img 
@@ -27,35 +19,38 @@
             <button @click="showAddStudent = true" class="menu-item">
               הוסף תלמיד
             </button>
-            <button @click="showEditClass = true" class="menu-item">
-              ערוך כיתה
-            </button>
             <button @click="handleLogout" class="menu-item">
               התנתק
             </button>
           </div>
         </div>
       </div>
-    </div>
-    
-    <!-- Teachers Section -->
-    <div class="teachers-section">
-      <h3>מורי הכיתה</h3>
-      <div class="teachers-list">
-        <div v-for="teacher in teachers" :key="teacher.id" class="teacher-card">
-          <!--img 
-            :src="teacher.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${teacher.email}`" 
-            :alt="teacher.email"
-            class="teacher-avatar"
-          /-->
-          <div class="teacher-info">
-            <span class="teacher-name">{{ teacher.name }}</span>
-            <span class="teacher-email">{{ teacher.email }}</span>
-          </div>
+      <button v-if="!state.isSingleClass" class="back-button" @click="goToClasses">חזור</button>
+      <div class="header-info">
+        <h2>אל תפיל את ה 100</h2>
+        <div class="school-class-info">
+          <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
+          <h3>כיתה {{ store.currentClass.value?.name }}</h3>
         </div>
       </div>
     </div>
     
+    <!-- Teachers Section 
+    <div class="teachers-section">
+      <span>
+        <h3>מורי הכיתה</h3>
+      </span>
+      <span>
+      <div class="teachers-list">
+        <div v-for="teacher in teachers" :key="teacher.id" class="teacher-card">
+          
+            <span class="teacher-name">{{ teacher.name }}</span>
+          
+        </div>
+      </div>
+    </span>
+    </div>
+    -->
     <div class="current-day">
       <h2>{{ getCurrentDay() }}</h2>
     </div>
@@ -268,7 +263,16 @@ const goToClasses = () => {
   router.push('/')
   showMenu.value = false
 }
-
+const goToCategories = () => {
+  if (classId.value) {
+    router.push(`/class/${classId.value}/category`)
+  }
+}
+const goToShop = () => {
+  if (classId.value) {
+    router.push(`/class/${classId.value}/shop`)
+  }
+}
 const handleReset = async () => {
   if (classId.value && confirm('האם אתה בטוח שברצונך לאפס את כל הציונים השבועיים?')) {
     await store.resetWeeklyScores(classId.value)

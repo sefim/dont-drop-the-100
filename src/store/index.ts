@@ -1,7 +1,8 @@
 import { ref, computed } from 'vue'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../supabaseClient'
-import { Class, StudentDictionary, Category, UserLog, ShopItem } from '../types'
+import { useCategoryStore } from './categoryStore'
+import type { Class, StudentDictionary, UserLog, ShopItem } from '../types'
 
 export const useStore = () => {
   const students = ref<StudentDictionary>({})
@@ -9,58 +10,7 @@ export const useStore = () => {
   const currentUser = ref<User | null>(null)
   const currentClass = ref<Class | null>(null)
   const userState = ref('')
-
-  
-  const categories: Category[] = [
-    {
-      name: "הגעה בזמן",
-      type: "negative",
-      subCategories: [
-        { name: "עד 2 דקות", points: -3 },
-        { name: "בין 5 ל 10 דקות", points: -5 },
-        { name: "מעל 10 דקות", points: -10 },
-        { name: "מעל 20 דקות", points: -30 },
-      ]
-    },
-    {
-      name: "נוכחות בכיתה",
-      type: "negative",
-      subCategories: [
-        { name: "הישארות בכיתה", points: -3 },
-        { name: "ישיבה במקום", points: -3 },
-      ]
-    },
-    {
-      name: "התנהגות מכבדת",
-      type: "negative",
-      subCategories: [
-        { name: "הפרעה", points: -5 },
-        { name: "התייחסות מכבדת לחבר", points: -3 },
-        { name: "התייחסות מכבדת למורה", points: -5 },
-        { name: "פגיעה אלימה", points: -5 },
-        { name: "פגיעה אלימה בצחוק", points: -3 },
-        { name: "התייחסות מכבדת לחבר", points: -3 },
-        { name: "הקשבה לצוות", points: -3 },
-        { name: "שמירה על רכוש בית ספר", points: -5 },
-        { name: "שימוש מהטלפון", points: -4 },
-        { name: "כל אלימות מילולית", points: -5 },
-        { name: "תלבושת מתאימה", points: -5 },
-        { name: "התנהגות חריגה", points: -15 },
-      ]
-    },
-    {
-      name: "בונוסים",
-      type: "positive",
-      subCategories: [
-        { name: "עזרה לחבר/צוות", points: 3 },
-        { name: "בונוס משימה", points: 3 },
-        { name: "בונוס משימה", points: 5 },
-        { name: "בונוס לפי שיקול מורה", points: 5 },
-        { name: "בונוס לפי שיקול מורה", points: 10 },
-        { name: "התארגנות לשיעור", points: 5 },
-      ]
-    },
-  ]
+  const categoryStore = useCategoryStore()
 
   const shopItems: ShopItem[] = [
     { name: "שטיח2/ ליקריץ ", cost: 85 },
@@ -416,7 +366,7 @@ export const useStore = () => {
     return currentClass.value.last_day !== today
   })
 
-  const purchaseItem = async (studentId: number, item: ShopItem) => {
+  const purchaseItem = async (studentId: number, classId: number, item: ShopItem) => {
     if (!students.value[studentId]) return
 
     try {
@@ -427,12 +377,29 @@ export const useStore = () => {
         .from('user_points')
         .update({ weekly_points: newWeeklyPoints })
         .eq('user_id', studentId)
+        .eq('class_id', classId)
 
       if (error) {
         console.error('Error updating points:', error)
         return
       }
 
+      // Log the score change
+      const { error: logError } = await supabase
+        .from('user_logs')
+        .insert({
+          user_id: studentId,
+          class_id: classId,
+          points: -item.cost,
+          category: 'חנות',
+          subcategory: item.name,
+          created_at: new Date().toISOString()
+        })
+        
+      if (logError) {
+        console.error('[purchaseItem] Error creating log:', logError)
+        return
+      }
       // Update local state
       students.value[studentId] = {
         ...student,
@@ -453,7 +420,8 @@ export const useStore = () => {
   return {
     students,
     classPoints,
-    categories,
+    categories: categoryStore.categories,
+    subCategories: categoryStore.subCategories,
     shopItems,
     currentUser,
     currentClass,

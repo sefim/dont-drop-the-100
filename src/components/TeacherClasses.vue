@@ -1,7 +1,6 @@
 <template>
   <div class="teacher-classes">
     <div class="header">
-      <h1>אל תפיל את ה 100</h1>
       <div v-if="user" class="user-info">
         <div class="avatar-menu">
           <img 
@@ -17,6 +16,7 @@
           </div>
         </div>
       </div>
+      <h1>אל תפיל את ה 100</h1>
     </div>
 
     <div class="section-header">
@@ -41,7 +41,7 @@
         </div>
         <div class="class-actions">
           <button @click="goToClass(class_.id)" class="action-button view-button">
-            צפה בכיתה
+            כנס לכיתה
           </button>
           <button @click="editClass(class_)" class="action-button edit-button">
             ערוך
@@ -49,6 +49,12 @@
           <button @click="deleteClass(class_.id)" class="action-button delete-button">
             מחק
           </button>
+          <button @click="goToCategories(class_.id)" class="action-button edit-button">
+              ערוך קטגוריות
+            </button>
+            <button @click="goToShop(class_.id)" class="action-button edit-button">
+              ערוך חנות
+            </button>
         </div>
       </div>
     </div>
@@ -106,6 +112,16 @@ const classForm = ref({
   school_name: ''
 })
 
+const goToCategories = (classId: number) => {
+  if (classId) {
+    router.push(`/class/${classId}/category`)
+  }
+}
+const goToShop = (classId: number) => {
+  if (classId) {
+    router.push(`/class/${classId}/shop`)
+  }
+}
 const loadClasses = async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession()

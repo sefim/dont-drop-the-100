@@ -21,17 +21,17 @@
     <div class="categories-tabs">
       <div class="tabs">
         <button 
-          v-for="category in store.categories" 
-          :key="category.name"
+          v-for="category in categoryStore.categories" 
+          :key="category.id"
           :class="[
             'tab-button', 
             { 
-              'active': activeTab === category.name,
+              'active': activeTab === category.id,
               'negative-tab': category.type === 'negative',
               'positive-tab': category.type === 'positive'
             }
           ]"
-          @click="activeTab = category.name"
+          @click="activeTab = category.id"
         >
           {{ category.name }}
         </button>
@@ -39,15 +39,15 @@
 
       <div class="tab-content">
         <div 
-          v-for="category in store.categories" 
-          :key="category.name"
-          v-show="activeTab === category.name"
+          v-for="category in categoryStore.categories" 
+          :key="category.id"
+          v-show="activeTab === category.id"
           :class="['category', category.type]"
         >
           <div class="sub-categories">
             <button
-              v-for="sub in category.subCategories"
-              :key="sub.name"
+              v-for="sub in getSubcategoriesForCategory(category.id)"
+              :key="sub.id"
               @click="handleScoreUpdate(sub.points, category.name, sub.name)"
               class="square-button sub-category"
             >
@@ -84,16 +84,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
+import { useCategoryStore } from '../store/categoryStore'
 import type { UserLog } from '../types'
 
-const store = useStore()
 const route = useRoute()
 const router = useRouter()
+const store = useStore()
+const categoryStore = useCategoryStore()
 const scoreLogs = ref<UserLog[]>([])
-const activeTab = ref(store.categories[0].name)
+const activeTab = ref<number | null>(null)
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
 const classId = computed(() => parseInt(route.params.class_id as string, 10))
@@ -102,6 +104,10 @@ const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
   return store.students.value[studentId.value] || null
 })
+
+const getSubcategoriesForCategory = (categoryId: number) => {
+  return categoryStore.subCategories.filter(sub => sub.category_id === categoryId && sub.is_selected)
+}
 
 const getHebrewDay = (date: Date) => {
   const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
@@ -160,12 +166,32 @@ const handleBack = async () => {
   }
 }
 
-onMounted(async () => {
+const initializeComponent = async () => {
   if (classId.value) {
-    await store.loadStudents(classId.value)
-    await loadLogs()
+    try {
+      await Promise.all([
+        store.loadStudents(classId.value),
+        categoryStore.loadCategories(classId.value),
+        loadLogs()
+      ])
+
+      // Set initial active tab to first category if available
+      if (categoryStore.categories.length > 0) {
+        activeTab.value = categoryStore.categories[0].id
+      }
+    } catch (error) {
+      console.error('Error initializing component:', error)
+    }
+  }
+}
+
+watch(() => route.params.class_id, async (newClassId) => {
+  if (newClassId) {
+    await initializeComponent()
   }
 })
+
+onMounted(initializeComponent)
 </script>
 
 <style scoped>
