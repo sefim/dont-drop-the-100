@@ -58,6 +58,7 @@ export const useStore = () => {
         { name: "עזרה לחבר/צוות", points: 3 },
         { name: "בונוס משימה", points: 3 },
         { name: "בונוס משימה", points: 5 },
+        { name: "ביצוע משימה בכיתה", points: 5 },
         { name: "בונוס לפי שיקול מורה", points: 5 },
         { name: "בונוס לפי שיקול מורה", points: 10 },
         { name: "התארגנות לשיעור", points: 5 },
