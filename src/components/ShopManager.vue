@@ -167,15 +167,6 @@ const saveChanges = async () => {
   }
 }
 
-const editItem = (item: ShopItem) => {
-  editingItem.value = item
-  itemForm.value = {
-    name: item.name,
-    cost: item.cost
-  }
-  showAddItem.value = true
-}
-
 const saveItem = async () => {
   try {
     if (editingItem.value) {
