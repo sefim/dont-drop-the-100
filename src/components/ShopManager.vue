@@ -1,34 +1,31 @@
 <template>
   <div class="shop-manager">
     <div class="header">
-      <button class="back-button" @click="goBack">חזור</button>
       <h2>ניהול חנות</h2>
-      <button @click="saveChanges" class="save-button" :disabled="!hasSelectionChanges">
-        שמור שינויים
-      </button>
+      <button @click="saveChanges" class="save-button" :disabled="!hasSelectionChanges">שמור</button>
+      <button class="back-button" @click="goBack">חזור</button>
     </div>
 
     <!-- Shop Items Section -->
     <div class="section">
       <div class="section-header">
         <h3>פריטים בחנות</h3>
-        <div class="select-all">
-          <input 
+        <button @click="showAddItem = true" class="add-button">
+          הוסף פריט
+        </button>
+      </div>
+      <div class="select-all">
+        <input 
             type="checkbox" 
             :checked="allSelected"
             :indeterminate="someSelected"
             @change="toggleAll"
             class="item-checkbox"
           />
-          <span>בחר הכל</span>
-        </div>
-        <button @click="showAddItem = true" class="add-button">
-          הוסף פריט
-        </button>
-      </div>
-
+            <span class="select-all-label">בחר הכל</span>
+          </div>
       <div class="items-list">
-        <div v-for="item in shopStore.items" :key="item.id" class="item-row">
+        <div v-for="item in shopStore.items" :key="item.id">
           <div class="item-content">
             <input 
               type="checkbox" 
@@ -37,8 +34,7 @@
               class="item-checkbox"
             />
             <span class="item-name">{{ item.name }}</span>
-            <span class="item-cost">{{ item.cost }} נקודות</span>
-            <button @click="editItem(item)" class="edit-button">ערוך</button>
+            <span class="item-cost">{{ item.cost }}</span>
           </div>
         </div>
       </div>
@@ -223,10 +219,10 @@ const cancelItem = () => {
 const goBack = () => {
   if (hasSelectionChanges.value) {
     if (confirm('יש לך שינויים שלא נשמרו. האם אתה בטוח שברצונך לצאת?')) {
-      router.push(`/class/${classId.value}`)
+      router.push(`/`)
     }
   } else {
-    router.push(`/class/${classId.value}`)
+    router.push(`/`)
   }
 }
 
@@ -259,7 +255,7 @@ onMounted(async () => {
 }
 
 .back-button {
-  background: #42b883;
+  background: #666;
   color: white;
   border: none;
   padding: 8px 16px;
@@ -270,8 +266,8 @@ onMounted(async () => {
 .section {
   background: white;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 30px;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
 .section-header {
@@ -287,9 +283,17 @@ onMounted(async () => {
 }
 
 .select-all {
+  background: #e4dddd;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 20px;
+}
+.select-all-label {
+  
+  color: #666;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .add-button {
@@ -307,19 +311,15 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.item-row {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
-}
-
 .item-content {
-  display: flex;
   align-items: center;
-  gap: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start
 }
 
 .item-checkbox {
+  flex-shrink: 0; 
   width: 18px;
   height: 18px;
   cursor: pointer;
@@ -329,6 +329,8 @@ onMounted(async () => {
   flex-grow: 1;
   color: #2c3e50;
   font-weight: 500;
+  text-align: right;
+  word-wrap: break-word;
 }
 
 .item-cost {

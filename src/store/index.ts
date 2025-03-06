@@ -323,7 +323,7 @@ export const useStore = () => {
       for (const user of classUsers || []) {
         const { error } = await supabase
           .from('user_points')
-          .update({ weekly_points: 0 })
+          .update({ weekly_points: 0, daily_points: 100 })
           .eq('user_id', user.user_id)
 
         if (error) {

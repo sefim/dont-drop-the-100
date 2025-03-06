@@ -49,10 +49,10 @@
           <button @click="deleteClass(class_.id)" class="action-button delete-button">
             מחק
           </button>
-          <button @click="goToCategories(class_.id)" class="action-button edit-button">
+          <button @click="goToCategories(class_.id)" class="action-button sub-edit-button">
               ערוך קטגוריות
             </button>
-            <button @click="goToShop(class_.id)" class="action-button edit-button">
+            <button @click="goToShop(class_.id)" class="action-button sub-edit-button">
               ערוך חנות
             </button>
         </div>
@@ -297,7 +297,7 @@ onMounted(loadClasses)
 }
 
 .add-button {
-  background: #42b883;
+  background: #453ced;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -422,7 +422,7 @@ onMounted(loadClasses)
 }
 
 .view-button {
-  background: #42b883;
+  background: #28A745;
   color: white;
 }
 
@@ -431,7 +431,7 @@ onMounted(loadClasses)
 }
 
 .edit-button {
-  background: #4a90e2;
+  background: #FFA500;
   color: white;
 }
 
@@ -446,6 +446,14 @@ onMounted(loadClasses)
 
 .delete-button:hover {
   background: #c62828;
+}
+.sub-edit-button {
+  background: #b299b2;
+  color: white;
+}
+
+.sub-edit-button:hover {
+  background: #a74989;
 }
 
 .modal {

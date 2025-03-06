@@ -12,6 +12,7 @@ export function useShopPage() {
   })
 
   const studentId = computed(() => parseInt(route.params.id as string, 10))
+  const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
   const student = computed(() => {
     if (!studentId.value || !store.students.value) return null
@@ -20,7 +21,7 @@ export function useShopPage() {
 
   const purchaseItem = async (item: { name: string, cost: number }) => {
     if (student.value) {
-      await store.purchaseItem(studentId.value, item)
+      await store.purchaseItem(studentId.value, classId.value, item)
     }
   }
 

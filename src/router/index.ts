@@ -44,7 +44,7 @@ const router = createRouter({
       props: true
     },
     {
-      path: '/shop/class/:classId/student/:id',
+      path: '/shop/class/:class_id/student/:id',
       component: ShopPage,
       meta: { requiresAuth: true }
     },

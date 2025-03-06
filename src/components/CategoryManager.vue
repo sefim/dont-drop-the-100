@@ -1,40 +1,30 @@
 <template>
   <div class="category-manager">
     <div class="header">
-      <button class="back-button" @click="goBack">חזור</button>
       <h2>ניהול קטגוריות</h2>
       <button 
-        v-if="isChanged" 
+        :disabled="!isChanged"
         class="save-changes-button"
         @click="saveChanges"
-      >
-        שמור שינויים
-      </button>
+      >שמור</button>
+      <button class="back-button" @click="goBack">חזור</button>
     </div>
     
     <!-- Categories List -->
     <div class="categories-list">
       <div v-for="category in categoryStore.categories" :key="category.id" class="category-card">
         <div class="category-header">
-          <div class="category-title">
+          <div class="category-title" :class="['type-badge', category.type]">
             <input 
               type="checkbox" 
               :checked="category.is_selected"
               @change="toggleCategory(category.id, ($event.target as HTMLInputElement).checked)"
               class="category-checkbox"
             />
-            <h3 @click="toggleCollapse(category.id)" class="category-name">
+            <h3  class="category-name">
               {{ category.name }}
-              <span class="collapse-icon">{{ isCollapsed(category.id) ? '▼' : '▲' }}</span>
             </h3>
-            <span :class="['type-badge', category.type]">
-              {{ category.type === 'positive' ? 'חיובי' : 'שלילי' }}
-            </span>
-          </div>
-          <div class="category-actions">
-            <button @click="editCategory(category)" class="edit-button">
-              ערוך
-            </button>
+            <span @click="toggleCollapse(category.id)" class="collapse-icon">{{ isCollapsed(category.id) ? '▼' : '▲' }}</span>
           </div>
         </div>
 
@@ -61,7 +51,6 @@
             class="subcategory-item"
           >
             <div class="subcategory-content">
-              <div>
               <input 
                 type="checkbox" 
                 :checked="sub.is_selected"
@@ -69,16 +58,10 @@
                 class="subcategory-checkbox"
               />
               <span class="subcategory-name">{{ sub.name }}</span>
-            </div  class="subcategory-actions">
               <span class="points" :class="{ negative: sub.points < 0 }">
                 {{ sub.points > 0 ? '+' : ''}}{{ sub.points }}
               </span>
             </div>
-            <!---div class="subcategory-actions">
-              <button @click="editSubcategory(sub)" class="edit-button">
-                ערוך
-              </button>
-            </div--->
           </div>
 
           <!-- Add Subcategory Button -->
@@ -129,7 +112,7 @@
           </div>
           <div class="form-group">
             <label>נקודות</label>
-            <input 
+            <input
               type="number" 
               v-model="subcategoryForm.points" 
               required
@@ -240,28 +223,6 @@ const showAddSubcategoryModal = (category: Category) => {
   showAddSubcategory.value = true
 }
 
-const editCategory = (category: Category) => {
-  editingCategory.value = category
-  categoryForm.value = {
-    name: category.name,
-    type: category.type
-  }
-  showAddCategory.value = true
-}
-
-const editSubcategory = (subcategory: Subcategory) => {
-  const category = categoryStore.categories.find(c => c.id === subcategory.category_id)
-  if (category) {
-    selectedCategory.value = category
-    editingSubcategory.value = subcategory
-    subcategoryForm.value = {
-      name: subcategory.name,
-      points: subcategory.points
-    }
-    showAddSubcategory.value = true
-  }
-}
-
 const saveCategory = async () => {
   try {
     if (editingCategory.value) {
@@ -323,8 +284,12 @@ const cancelSubcategory = () => {
 }
 
 const goBack = () => {
-  if (classId.value) {
-    router.push(`/class/${classId.value}`)
+  if (isChanged.value) {
+    if (confirm('יש לך שינויים שלא נשמרו. האם אתה בטוח שברצונך לצאת?')) {
+      router.push(`/`)
+    }
+  } else {
+    router.push(`/`)
   }
 }
 
@@ -344,9 +309,9 @@ onMounted(async () => {
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; ;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .back-button {
@@ -366,7 +331,10 @@ onMounted(async () => {
   border-radius: 8px;
   cursor: pointer;
 }
-
+.save-changes-button:disabled {
+  background: #a8d5c2;
+  cursor: not-allowed;
+}
 .add-button {
   margin: 20px 0;
   background: #42b883;
@@ -381,14 +349,13 @@ onMounted(async () => {
 .categories-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  gap: 10px;
 }
 
 .category-card {
   background: white;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
 }
 
 .category-header {
@@ -401,7 +368,9 @@ onMounted(async () => {
 .category-title {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
+  width: 100%;
 }
 
 .category-checkbox,
@@ -409,9 +378,12 @@ onMounted(async () => {
   width: 18px;
   height: 18px;
   cursor: pointer;
+  align-self: center;
 }
 
 .category-name {
+  text-align: right;
+  flex-grow: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -460,9 +432,16 @@ onMounted(async () => {
 .select-all-label {
   font-weight: bold;
   color: #666;
+  
 }
 
-.subcategory-item {
+.subcategory-name {
+  text-align: right;
+  flex-grow: 1;
+}
+
+
+ .subcategory-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -474,8 +453,11 @@ onMounted(async () => {
 
 .subcategory-content {
   display: flex;
-  align-items: space-between;
-  gap: 100px;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 5px;
+  
 }
 
 .points {

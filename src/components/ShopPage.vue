@@ -52,8 +52,6 @@
       </div>
     </div>
 
-
-
     <div class="shop-items">
       <div 
         v-for="item in shopStore.items" 
@@ -89,7 +87,7 @@ const router = useRouter()
 const purchases = ref<UserLog[]>([])
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
-const classId = computed(() => parseInt(route.params.classId as string, 10))
+const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
 const student = computed(() => {
   if (!studentId.value || !store.students.value) return null
@@ -99,7 +97,7 @@ const handleUndo = async (logEntry: UserLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
     const success = await store.undoAction(logEntry, studentId.value)
     if (success) {
-      await loadLogs()
+      await loadPurchaseHistory()
     }
   }
 }

@@ -7,31 +7,31 @@
       <div v-if="state.user" class="user-info">
         <div class="avatar-menu">
           <img 
-            :src="state.user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${state.user.email}`" 
-            :alt="state.user.user_metadata?.full_name || state.user.email"
-            class="user-avatar"
-            @click="showMenu = !showMenu"
+          :src="state.user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${state.user.email}`" 
+          :alt="state.user.user_metadata?.full_name || state.user.email"
+          class="user-avatar"
+          @click="showMenu = !showMenu"
           />
           <div v-if="showMenu" class="menu">
-            <button @click="goToClasses" class="menu-item">
-              הכיתות שלי
-            </button>
-            <button @click="showAddStudent = true" class="menu-item">
-              הוסף תלמיד
-            </button>
-            <button @click="handleLogout" class="menu-item">
-              התנתק
-            </button>
+          <button @click="goToClasses" class="menu-item">
+            הכיתות שלי
+          </button>
+          <button @click="showAddStudent = true" class="menu-item">
+            הוסף תלמיד
+          </button>
+          <button @click="handleLogout" class="menu-item">
+            התנתק
+          </button>
           </div>
         </div>
       </div>
       <button v-if="!state.isSingleClass" class="back-button" @click="goToClasses">חזור</button>
       <div class="header-info">
-        <h2>אל תפיל את ה 100</h2>
-        <div class="school-class-info">
-          <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
-          <h3>כיתה {{ store.currentClass.value?.name }}</h3>
-        </div>
+      <h2>אל תפיל את ה 100</h2>
+      <div class="school-class-info">
+        <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
+        <h3>כיתה {{ store.currentClass.value?.name }}</h3>
+      </div>
       </div>
     </div>
     
@@ -263,16 +263,7 @@ const goToClasses = () => {
   router.push('/')
   showMenu.value = false
 }
-const goToCategories = () => {
-  if (classId.value) {
-    router.push(`/class/${classId.value}/category`)
-  }
-}
-const goToShop = () => {
-  if (classId.value) {
-    router.push(`/class/${classId.value}/shop`)
-  }
-}
+
 const handleReset = async () => {
   if (classId.value && confirm('האם אתה בטוח שברצונך לאפס את כל הציונים השבועיים?')) {
     await store.resetWeeklyScores(classId.value)
@@ -666,8 +657,8 @@ onMounted(initializeComponent)
 }
 
 .student-avatar {
-  width: 80px;
-  height: 80px;
+  width: 45px;
+  height: 45px;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
