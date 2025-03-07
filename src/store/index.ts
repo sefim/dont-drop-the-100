@@ -330,16 +330,16 @@ export const useStore = () => {
           console.error(`Error resetting weekly points for user ${user.user_id}:`, error)
         }
       }
+      if (currentClass.value?.points !== null) {
+        const { error } = await supabase
+          .from('classes')
+          .update({ points: 0 })
+          .eq('id', classId)
 
-      const { error } = await supabase
-        .from('classes')
-        .update({ points: 0 })
-        .eq('id', classId)
-
-      if (error) {
-        console.error(`Error resetting points for class ${classId}:`, error)
+        if (error) {
+          console.error(`Error resetting points for class ${classId}:`, error)
+        }
       }
-
       // Reload students to refresh the UI
       await loadStudents(classId)
     } catch (error) {

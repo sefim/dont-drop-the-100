@@ -22,21 +22,21 @@ export const useShopStore = defineStore('shop', () => {
 
   // Cache management
   const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-  const CACHE_KEY = 'shopCache'
+  const CACHE_KEY = 'shopCache-'
 
-  const clearCache = () => {
-    sessionStorage.removeItem(CACHE_KEY)
+  const clearCache = (classId: number) => {
+    sessionStorage.removeItem(CACHE_KEY+classId)
   }
 
-  const loadFromCache = (classId?: number): CacheData | null => {
-    const cached = sessionStorage.getItem(CACHE_KEY)
+  const loadFromCache = (classId: number): CacheData | null => {
+    const cached = sessionStorage.getItem(CACHE_KEY+classId)
     if (!cached) return null
 
     const data: CacheData = JSON.parse(cached)
     const now = Date.now()
 
     if (now - data.timestamp > CACHE_DURATION) {
-      clearCache()
+      clearCache(classId)
       return null
     }
 
@@ -47,8 +47,8 @@ export const useShopStore = defineStore('shop', () => {
     return data
   }
 
-  const saveToCache = (data: CacheData) => {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+  const saveToCache = (classId: number, data: CacheData) => {
+    sessionStorage.setItem(CACHE_KEY+classId, JSON.stringify({
       ...data,
       timestamp: Date.now()
     }))
@@ -59,7 +59,7 @@ export const useShopStore = defineStore('shop', () => {
     return [...itemsRaw.value].sort((a, b) => a.cost - b.cost)
   })
 
-  const loadItems = async (classId?: number) => {
+  const loadItems = async (classId: number) => {
     try {
       loading.value = true
       error.value = null
@@ -79,7 +79,7 @@ export const useShopStore = defineStore('shop', () => {
         if (fetchError) throw fetchError
         if (data) {
           itemsRaw.value = data
-          saveToCache({ items: data, timestamp: Date.now(), classId })
+          saveToCache(classId, { items: data, timestamp: Date.now(), classId })
         }
       } else {
         // Load all items without selection status
@@ -91,7 +91,7 @@ export const useShopStore = defineStore('shop', () => {
         if (fetchError) throw fetchError
         if (data) {
           itemsRaw.value = data
-          saveToCache({ items: data, timestamp: Date.now() })
+          saveToCache(classId, { items: data, timestamp: Date.now() })
         }
       }
     } catch (err) {

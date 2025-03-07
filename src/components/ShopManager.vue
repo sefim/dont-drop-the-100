@@ -160,6 +160,7 @@ const saveChanges = async () => {
 
     // Update initial selection to match current selection
     initialSelectedItems.value = new Set(selectedItems.value)
+    shopStore.clearCache(classId.value)
     await shopStore.loadItems(classId.value)
   } catch (error) {
     console.error('Error saving changes:', error)
@@ -189,7 +190,7 @@ const saveItem = async () => {
 
       if (error) throw error
     }
-
+    shopStore.clearCache(classId.value)
     await shopStore.loadItems(classId.value)
     cancelItem()
   } catch (error) {

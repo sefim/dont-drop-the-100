@@ -36,24 +36,27 @@
           <h2>{{ class_.name }}</h2>
           <p>{{ class_.school_name }}</p>
         </div>
-        <div class="class-points">
+        <div class="class-points" v-if="classHasPoints(class_.points)">
           <h3>ציון כיתתי: {{ class_.points || 0 }}</h3>
         </div>
         <div class="class-actions">
           <button @click="goToClass(class_.id)" class="action-button view-button">
             כנס לכיתה
           </button>
+          <button @click="showImportStudents(class_)" class="action-button import-button">
+            הוסף תלמידים
+          </button>
           <button @click="editClass(class_)" class="action-button edit-button">
-            ערוך
+             ערוך כיתה 
           </button>
           <button @click="deleteClass(class_.id)" class="action-button delete-button">
-            מחק
+           מחק כיתה
           </button>
           <button @click="goToCategories(class_.id)" class="action-button sub-edit-button">
               ערוך קטגוריות
             </button>
             <button @click="goToShop(class_.id)" class="action-button sub-edit-button">
-              ערוך חנות
+              ערוך חנות מתנות
             </button>
         </div>
       </div>
@@ -72,6 +75,11 @@
             <label>בית ספר</label>
             <input v-model="classForm.school_name" required placeholder="הכנס שם בית ספר" />
           </div>
+          <div  class="form-group">
+            <input type="checkbox" v-model="editClassHasPoints"
+            class="form-checkbox" />
+            <label class="aligned-label">ציון שבועי</label>
+          </div>
           <div class="modal-actions">
             <button type="submit" class="save-button">
               {{ editingClass ? 'שמור שינויים' : 'הוסף כיתה' }}
@@ -81,14 +89,92 @@
         </form>
       </div>
     </div>
+
+    <!-- Import Students Modal -->
+    <div v-if="showImportModal" class="modal">
+      <div class="modal-content">
+        <h2>ייבא תלמידים</h2>
+        
+        <div class="import-method">
+          <div class="radio-group">
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                v-model="importMethod" 
+                value="file"
+                name="importMethod"
+              />
+              העלאת קובץ
+            </label>
+            <label class="radio-label">
+              <input 
+                type="radio" 
+                v-model="importMethod" 
+                value="manual"
+                name="importMethod"
+              />
+              הזנה ידנית
+            </label>
+          </div>
+        </div>
+
+        <div class="import-content">
+          <!-- File Upload Option -->
+          <div v-if="importMethod === 'file'" class="import-option">
+            <p>בחר קובץ Excel או CSV</p>
+            <p>הקובץ ללא שורת כותרת, שם בכל שורה</p>
+            <input 
+              type="file" 
+              accept=".csv,.xlsx,.xls"
+              @change="handleFileUpload"
+              class="file-input"
+            />
+          </div>
+
+          <!-- Manual Input Option -->
+          <div v-if="importMethod === 'manual'" class="import-option">
+            <p>הכנס רשימת שמות (שם בכל שורה)</p>
+            <textarea 
+              v-model="manualStudentList"
+              @input="processManualList"
+              rows="10"
+              placeholder="לדוגמה:&#10;ישראל ישראלי&#10;דוד דוידוב&#10;יעל יעלי"
+              class="student-list-input"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="preview-section" v-if="studentsToImport.length > 0">
+          <h3>תצוגה מקדימה</h3>
+          <div class="students-preview">
+            <div v-for="(student, index) in studentsToImport" :key="index" class="student-preview-item">
+              {{ student.name }}
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button 
+            @click="importStudents" 
+            class="save-button"
+            :disabled="studentsToImport.length === 0"
+          >
+            ייבא {{ studentsToImport.length }} תלמידים
+          </button>
+          <button @click="cancelImport" class="cancel-button">בטל</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
 import type { User } from '@supabase/supabase-js'
+import * as XLSX from 'xlsx'
+import Papa from 'papaparse'
 
 interface Class {
   id: number
@@ -100,17 +186,137 @@ interface Class {
 interface ClassUserResponse {
   classes: Class[]
 }
-
+interface StudentToImport {
+  name: string
+}
 const router = useRouter()
 const classes = ref<Class[]>([])
 const user = ref<User | null>(null)
 const showMenu = ref(false)
 const showAddClass = ref(false)
+const showImportModal = ref(false)
 const editingClass = ref<Class | null>(null)
-const classForm = ref({
+const selectedClass = ref<Class | null>(null)
+const classForm = ref<{
+  name: string,
+  school_name: string,
+  points: number | null
+}>({
   name: '',
-  school_name: ''
+  school_name: '',
+  points: null
 })
+
+const importMethod = ref('file')
+const manualStudentList = ref('')
+const studentsToImport = ref<StudentToImport[]>([])
+
+const showImportStudents = (class_: Class) => {
+  selectedClass.value = class_
+  showImportModal.value = true
+  importMethod.value = 'file'
+  studentsToImport.value = []
+  manualStudentList.value = ''
+}
+
+const handleFileUpload = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  try {
+    if (file.name.endsWith('.csv')) {
+      // Handle CSV
+      const text = await file.text()
+      Papa.parse(text, {
+        complete: (results) => {
+          studentsToImport.value = results.data
+            .filter((row: any) => row[0]?.trim()) // Filter out empty rows
+            .map((row: any) => ({ name: row[0].trim() }))
+        }
+      })
+    } else {
+      // Handle Excel
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data)
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+      
+      studentsToImport.value = jsonData
+        .filter((row: any) => row[0]?.trim()) // Filter out empty rows
+        .map((row: any) => ({ name: row[0].trim() }))
+    }
+  } catch (error) {
+    console.error('Error parsing file:', error)
+    alert('שגיאה בקריאת הקובץ. אנא נסה שוב.')
+  }
+}
+
+const processManualList = () => {
+  if (!manualStudentList.value.trim()) {
+    studentsToImport.value = []
+    return
+  }
+
+  studentsToImport.value = manualStudentList.value
+    .split('\n')
+    .map(name => name.trim())
+    .filter(name => name) // Filter out empty lines
+    .map(name => ({ name }))
+}
+
+const importStudents = async () => {
+  if (!selectedClass.value || studentsToImport.value.length === 0) return
+
+  try {
+    for (const student of studentsToImport.value) {
+      // Create new user
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          name: student.name,
+          role: 'student'
+        })
+        .select()
+        .single()
+
+      if (userError) throw userError
+
+      // Link user to class
+      const { error: linkError } = await supabase
+        .from('class_users')
+        .insert({
+          class_id: selectedClass.value.id,
+          user_id: userData.id
+        })
+
+      if (linkError) throw linkError
+
+      // Initialize user points
+      const { error: pointsError } = await supabase
+        .from('user_points')
+        .insert({
+          user_id: userData.id,
+          daily_points: 100,
+          weekly_points: 0
+        })
+
+      if (pointsError) throw pointsError
+    }
+
+    alert(`${studentsToImport.value.length} תלמידים נוספו בהצלחה`)
+    cancelImport()
+  } catch (error) {
+    console.error('Error importing students:', error)
+    alert('שגיאה בייבוא התלמידים. אנא נסה שוב.')
+  }
+}
+
+const cancelImport = () => {
+  showImportModal.value = false
+  selectedClass.value = null
+  manualStudentList.value = ''
+  studentsToImport.value = []
+}
 
 const goToCategories = (classId: number) => {
   if (classId) {
@@ -159,25 +365,31 @@ const loadClasses = async () => {
 
 const saveClass = async () => {
   try {
+    let points_update = editClassHasPoints.value ? 0 : null
     if (editingClass.value) {
       // Update existing class
+      if (editingClass.value.points !== null && editClassHasPoints.value) {
+        points_update = editingClass.value.points
+      }
       const { error } = await supabase
         .from('classes')
         .update({
           name: classForm.value.name,
-          school_name: classForm.value.school_name
+          school_name: classForm.value.school_name,
+          points: points_update
         })
         .eq('id', editingClass.value.id)
 
       if (error) throw error
     } else {
+      console.log('points_update', points_update, editClassHasPoints.value)
       // Create new class
       const { data: newClass, error: createError } = await supabase
         .from('classes')
         .insert({
           name: classForm.value.name,
           school_name: classForm.value.school_name,
-          points: 0,
+          points: points_update,
         })
         .select()
         .single()
@@ -216,10 +428,29 @@ const editClass = (class_: Class) => {
   editingClass.value = class_
   classForm.value = {
     name: class_.name,
-    school_name: class_.school_name
+    school_name: class_.school_name,
+    points: class_.points
   }
   showAddClass.value = true
 }
+
+const classHasPoints = (points: number | null) => {
+  return points !== null
+}
+
+const editClassHasPoints = computed({
+  get: () => {
+    console.log('classForm.value.points', classForm.value.points)
+    return classForm.value.points !== null
+  },
+  set: (_newValue) => {
+    if (_newValue) {
+      classForm.value.points = editingClass.value?.points || 0
+    } else {
+      classForm.value.points = null
+    }
+  },
+});
 
 const deleteClass = async (classId: number) => {
   if (confirm('האם אתה בטוח שברצונך למחוק כיתה זו?')) {
@@ -244,7 +475,8 @@ const cancelClassModal = () => {
   editingClass.value = null
   classForm.value = {
     name: '',
-    school_name: ''
+    school_name: '',
+    points: editClassHasPoints.value ? 0 : null
   }
 }
 
@@ -478,22 +710,33 @@ onMounted(loadClasses)
 }
 
 .form-group {
+  display: flex;
   margin-bottom: 20px;
+  align-content: center;
 }
 
 .form-group label {
-  display: block;
+  align-content: center;
+  display: inline-block;
   margin-bottom: 8px;
   font-weight: bold;
   color: #2c3e50;
+  min-width: 70px;
+  text-align: right;
 }
 
 .form-group input {
-  width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 1em;
+}
+
+.form-checkbox{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
 }
 
 .modal-actions {
@@ -529,5 +772,38 @@ onMounted(loadClasses)
 
 .cancel-button:hover {
   background: #555;
+}
+
+.import-method {
+  margin-bottom: 20px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.radio-label:hover {
+  background: #eee;
+}
+
+.aligned-label {
+  display: block;
+  text-align: left; /* Adjust alignment as needed */
+  margin-bottom: 5px; /* Adjust spacing as needed */
 }
 </style>

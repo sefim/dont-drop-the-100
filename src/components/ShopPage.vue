@@ -158,7 +158,7 @@ const handleBack = async () => {
 onMounted(async () => {
   await Promise.all([
     store.loadStudents(classId.value),
-    shopStore.loadItems(),
+    shopStore.loadItems(classId.value),
     loadPurchaseHistory()
   ])
 })

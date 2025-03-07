@@ -226,12 +226,12 @@ const showAddSubcategoryModal = (category: Category) => {
 const saveCategory = async () => {
   try {
     if (editingCategory.value) {
-      await categoryStore.updateCategory(editingCategory.value.id, {
+      await categoryStore.updateCategory(classId.value,  editingCategory.value.id, {
         name: categoryForm.value.name,
         type: categoryForm.value.type
       })
     } else {
-      await categoryStore.addCategory({
+      await categoryStore.addCategory(classId.value, {
         name: categoryForm.value.name,
         type: categoryForm.value.type
       })
@@ -246,12 +246,12 @@ const saveCategory = async () => {
 const saveSubcategory = async () => {
   try {
     if (editingSubcategory.value) {
-      await categoryStore.updateSubcategory(editingSubcategory.value.id, {
+      await categoryStore.updateSubcategory(classId.value, editingSubcategory.value.id, {
         name: subcategoryForm.value.name,
         points: subcategoryForm.value.points
       })
     } else if (selectedCategory.value) {
-      await categoryStore.addSubcategory({
+      await categoryStore.addSubcategory(classId.value, {
         category_id: selectedCategory.value.id,
         name: subcategoryForm.value.name,
         points: subcategoryForm.value.points

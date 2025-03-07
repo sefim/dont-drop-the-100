@@ -56,21 +56,21 @@ export const useCategoryStore = defineStore('categories', () => {
 
   // Cache management
   const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-  const CACHE_KEY = 'categoryCache'
+  const CACHE_KEY = 'categoryCache-'
 
-  const clearCache = () => {
-    sessionStorage.removeItem(CACHE_KEY)
+  const clearCache = (classId?: number) => {
+    sessionStorage.removeItem(CACHE_KEY+classId)
   }
 
   const loadFromCache = (classId?: number): CacheData | null => {
-    const cached = sessionStorage.getItem(CACHE_KEY)
+    const cached = sessionStorage.getItem(CACHE_KEY+classId)
     if (!cached) return null
 
     const data: CacheData = JSON.parse(cached)
     const now = Date.now()
 
     if (now - data.timestamp > CACHE_DURATION) {
-      clearCache()
+      clearCache(classId)
       return null
     }
 
@@ -81,8 +81,8 @@ export const useCategoryStore = defineStore('categories', () => {
     return data
   }
 
-  const saveToCache = (data: CacheData) => {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+  const saveToCache = (classId: number, data: CacheData) => {
+    sessionStorage.setItem(CACHE_KEY+classId, JSON.stringify({
       ...data,
       timestamp: Date.now()
     }))
@@ -90,7 +90,7 @@ export const useCategoryStore = defineStore('categories', () => {
 
   const loadCategories = async (classId?: number) => {
     try {
-      loading.value = true
+       loading.value = true
       error.value = null
 
       // Reset pending changes
@@ -98,28 +98,29 @@ export const useCategoryStore = defineStore('categories', () => {
         categories: new Map(),
         subcategories: new Map()
       }
-
       // Try to load from cache first
       const cached = loadFromCache(classId)
+      
       if (cached) {
         categoriesRaw.value = cached.categories
         subCategoriesRaw.value = cached.subCategories
         return
       }
-      console.log('load categories from db')
+      console.log('load categories from db', classId)
       if (classId) {
         // Load categories with selection status
         const { data: catsData, error: catsError } = await supabase
-          .rpc('get_categories_with_selection', { class_id: classId })
+          .rpc('get_categories_with_selection', { p_class_id: classId })
 
         if (catsError) throw catsError
         if (catsData) {
+          console.log('catsData', catsData)
           categoriesRaw.value = catsData
         }
 
         // Load subcategories with selection status
         const { data: subsData, error: subsError } = await supabase
-          .rpc('get_sub_categories_with_selection', { class_id: classId })
+          .rpc('get_sub_categories_with_selection', { p_class_id: classId })
 
         if (subsError) throw subsError
         if (subsData) {
@@ -127,7 +128,7 @@ export const useCategoryStore = defineStore('categories', () => {
         }
 
         // Save to cache
-        saveToCache({
+        saveToCache(classId, {
           categories: categoriesRaw.value,
           subCategories: subCategoriesRaw.value,
           timestamp: Date.now(),
@@ -142,7 +143,7 @@ export const useCategoryStore = defineStore('categories', () => {
     }
   }
 
-  const addCategory = async (category: Omit<Category, 'id'>) => {
+  const addCategory = async (classId: number, category: Omit<Category, 'id'>) => {
     const { data, error: insertError } = await supabase
       .from('categories')
       .insert(category)
@@ -152,11 +153,11 @@ export const useCategoryStore = defineStore('categories', () => {
     if (insertError) throw insertError
 
     categoriesRaw.value.push(data)
-    clearCache() // Clear cache when adding a category
+    clearCache(classId) // Clear cache when adding a category
     return data
   }
 
-  const updateCategory = async (id: number, updates: Partial<Omit<Category, 'id'>>) => {
+  const updateCategory = async (classId: number, id: number, updates: Partial<Omit<Category, 'id'>>) => {
     const { data, error: updateError } = await supabase
       .from('categories')
       .update(updates)
@@ -171,11 +172,11 @@ export const useCategoryStore = defineStore('categories', () => {
       categoriesRaw.value[index] = { ...categoriesRaw.value[index], ...data }
     }
     
-    clearCache() // Clear cache when updating a category
+    clearCache(classId) // Clear cache when updating a category
     return data
   }
 
-  const addSubcategory = async (subcategory: Omit<Subcategory, 'id'>) => {
+  const addSubcategory = async (classId: number, subcategory: Omit<Subcategory, 'id'>) => {
     const { data, error: insertError } = await supabase
       .from('sub_categories')
       .insert(subcategory)
@@ -185,11 +186,11 @@ export const useCategoryStore = defineStore('categories', () => {
     if (insertError) throw insertError
 
     subCategoriesRaw.value.push(data)
-    clearCache() // Clear cache when adding a subcategory
+    clearCache(classId) // Clear cache when adding a subcategory
     return data
   }
 
-  const updateSubcategory = async (id: number, updates: Partial<Omit<Subcategory, 'id' | 'category_id'>>) => {
+  const updateSubcategory = async (classId: number, id: number, updates: Partial<Omit<Subcategory, 'id' | 'category_id'>>) => {
     const { data, error: updateError } = await supabase
       .from('sub_categories')
       .update(updates)
@@ -204,33 +205,8 @@ export const useCategoryStore = defineStore('categories', () => {
       subCategoriesRaw.value[index] = { ...subCategoriesRaw.value[index], ...data }
     }
     
-    clearCache() // Clear cache when updating a subcategory
+    clearCache(classId) // Clear cache when updating a subcategory
     return data
-  }
-
-  const deleteCategory = async (id: number) => {
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
-    categoriesRaw.value = categoriesRaw.value.filter(c => c.id !== id)
-    subCategoriesRaw.value = subCategoriesRaw.value.filter(s => s.category_id !== id)
-    clearCache() // Clear cache when deleting a category
-  }
-
-  const deleteSubcategory = async (id: number) => {
-    const { error } = await supabase
-      .from('sub_categories')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-
-    subCategoriesRaw.value = subCategoriesRaw.value.filter(s => s.id !== id)
-    clearCache() // Clear cache when deleting a subcategory
   }
 
   const toggleCategorySelection = (categoryId: number, selected: boolean, isChanged: Ref<boolean>) => {
@@ -311,7 +287,7 @@ export const useCategoryStore = defineStore('categories', () => {
       }
 
       // Clear cache and reload data
-      clearCache()
+      clearCache(classId)
       await loadCategories(classId)
     } catch (err) {
       console.error('Error saving changes:', err)
@@ -332,8 +308,6 @@ export const useCategoryStore = defineStore('categories', () => {
     updateCategory,
     addSubcategory,
     updateSubcategory,
-    deleteCategory,
-    deleteSubcategory,
     toggleCategorySelection,
     toggleSubcategorySelection,
     saveChanges,

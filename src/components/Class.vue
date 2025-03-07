@@ -13,28 +13,22 @@
           @click="showMenu = !showMenu"
           />
           <div v-if="showMenu" class="menu">
-          <button @click="goToClasses" class="menu-item">
-            הכיתות שלי
-          </button>
-          <button @click="showAddStudent = true" class="menu-item">
-            הוסף תלמיד
-          </button>
-          <button @click="handleLogout" class="menu-item">
-            התנתק
-          </button>
+            <button @click="handleLogout" class="menu-item">התנתק</button>
           </div>
         </div>
       </div>
-      <button v-if="!state.isSingleClass" class="back-button" @click="goToClasses">חזור</button>
       <div class="header-info">
-      <h2>אל תפיל את ה 100</h2>
-      <div class="school-class-info">
-        <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
-        <h3>כיתה {{ store.currentClass.value?.name }}</h3>
+        <h2>אל תפיל את ה 100</h2>
       </div>
+      <div>
+        <button v-if="!state.isSingleClass" @click="goToClasses" class="back-button">הכיתות שלי</button>  
       </div>
     </div>
-    
+    <div class="school-class-info">
+      <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
+      <h3>כיתה {{ store.currentClass.value?.name }}</h3>
+      
+    </div>
     <!-- Teachers Section 
     <div class="teachers-section">
       <span>
@@ -54,8 +48,8 @@
     <div class="current-day">
       <h2>{{ getCurrentDay() }}</h2>
     </div>
-    <div class="class-score">
-      <h2>ציון שבועי: {{ store.currentClass.value?.points || 0 }}</h2>
+    <div class="class-score" v-if="classHasPoints">
+      <h2>ציון שבועי: {{ store.currentClass.value?.points }}</h2>
     </div>
     <div v-if="sortedStudents.length > 0" class="students">
       <div 
@@ -64,6 +58,7 @@
         class="student-card"
       >
         <div class="student-content" @click="goToStudent(student.id)">
+          <h3>{{ student.name }}</h3>
           <div class="student-avatar">
             <img 
               :src="`https://api.dicebear.com/7.x/bottts/svg?seed=${student.avatar}&backgroundColor=42b883`" 
@@ -71,13 +66,14 @@
               class="avatar-image"
             />
           </div>
+        </div>
+        <div class="student-content">
           <div class="student-info">
-            <h3>{{ student.name }}</h3>
             <p>ציון יומי: {{ student.dailyPoints }}</p>
             <p>ציון שבועי: {{ student.weeklyPoints }}</p>
           </div>
         </div>
-        <div class="student-menu">
+        <!-- <div class="student-menu">
           <button @click="showStudentMenu(student.id)" class="menu-trigger">
             <span class="dots"></span>
           </button>
@@ -89,7 +85,7 @@
               מחק תלמיד
             </button>
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
     <div v-if="sortedStudents.length === 0" class="no-students">
@@ -105,46 +101,6 @@
         סיום יום
       </button>
       <button @click="handleReset" class="reset-button">איפוס שבועי</button>
-      <!-- Add Student Modal -->
-      <div v-if="showAddStudent" class="modal">
-        <div class="modal-content">
-          <h2>הוסף תלמיד</h2>
-          <form @submit.prevent="addStudent">
-            <div class="form-group">
-              <label>שם התלמיד</label>
-              <input v-model="studentForm.name" required placeholder="הכנס שם תלמיד" />
-            </div>
-            <div class="form-group">
-              <label>אימייל</label>
-              <input v-model="studentForm.email" type="email" placeholder="הכנס אימייל" />
-            </div>
-            <div class="modal-actions">
-              <button type="submit" class="save-button">הוסף</button>
-              <button type="button" @click="cancelAddStudent" class="cancel-button">בטל</button>
-            </div>
-          </form>
-        </div>
-      </div>
-      <!-- Edit Class Modal -->
-      <div v-if="showEditClass" class="modal">
-        <div class="modal-content">
-          <h2>ערוך כיתה</h2>
-          <form @submit.prevent="saveClass">
-            <div class="form-group">
-              <label>שם כיתה</label>
-              <input v-model="classForm.name" required />
-            </div>
-            <div class="form-group">
-              <label>בית ספר</label>
-              <input v-model="classForm.school_name" required />
-            </div>
-            <div class="modal-actions">
-              <button type="submit" class="save-button">שמור</button>
-              <button type="button" @click="cancelEdit" class="cancel-button">בטל</button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
     <!-- Update Score Modal -->
     <div v-if="showScoreModal" class="modal">
@@ -214,17 +170,13 @@ const state = ref<State>({
 })
 
 const showMenu = ref(false)
-const activeStudentMenu = ref<number | null>(null)
-const showAddStudent = ref(false)
-const showEditClass = ref(false)
-const studentForm = ref({
-  name: '',
-  email: ''
-})
-const classForm = computed(() => ({
-  name: store.currentClass.value?.name || '',
-  school_name: store.currentClass.value?.school_name || ''
-}))
+// const activeStudentMenu = ref<number | null>(null)
+// const showAddStudent = ref(false)
+
+// const studentForm = ref({
+//   name: '',
+//   email: ''
+// })
 
 const showScoreModal = ref(false)
 const selectedStudent = ref<any>(null)
@@ -235,6 +187,10 @@ const classId = computed(() => {
   const id = Number(route.params.id)
   return id
 })
+
+const classHasPoints = computed(() => {
+  return store.currentClass.value?.points !== null;
+});
 
 const sortedStudents = computed(() => {
   console.log("store.students.value:", store.students.value);
@@ -268,18 +224,6 @@ const handleReset = async () => {
   if (classId.value && confirm('האם אתה בטוח שברצונך לאפס את כל הציונים השבועיים?')) {
     await store.resetWeeklyScores(classId.value)
   }
-}
-
-const showStudentMenu = (studentId: number) => {
-  activeStudentMenu.value = activeStudentMenu.value === studentId ? null : studentId
-}
-
-const showUpdateScore = (student: any) => {
-  selectedStudent.value = student
-  showScoreModal.value = true
-  activeStudentMenu.value = null
-  scoreChange.value = 0
-  scoreReason.value = ''
 }
 
 const updateStudentScore = async () => {
@@ -340,133 +284,102 @@ const loadTeachers = async (classId: number) => {
   }
 }
 
-const addStudent = async () => {
-  if (!classId.value) return
+// const addStudent = async () => {
+//   if (!classId.value) return
 
-  try {
-    let user_id = 0
-     {
-      // Create user record
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert({
-          name: studentForm.value.name,
-          email: studentForm.value.email,
-          role: 'student'
-        })
-        .select()
-        .single()
+//   try {
+//     let user_id = 0
+//      {
+//       // Create user record
+//       const { data: userData, error: userError } = await supabase
+//         .from('users')
+//         .insert({
+//           name: studentForm.value.name,
+//           email: studentForm.value.email,
+//           role: 'student'
+//         })
+//         .select()
+//         .single()
 
-      if (userError) throw userError
-      console.log('insert user', userData)
-      user_id = userData.id
-    }
-      // Add user to class
-    const { error: classError } = await supabase
-      .from('class_users')
-      .insert({
-        class_id: classId.value,
-        user_id: user_id
-      })
+//       if (userError) throw userError
+//       console.log('insert user', userData)
+//       user_id = userData.id
+//     }
+//       // Add user to class
+//     const { error: classError } = await supabase
+//       .from('class_users')
+//       .insert({
+//         class_id: classId.value,
+//         user_id: user_id
+//       })
 
-    if (classError) throw classError
+//     if (classError) throw classError
 
-    // Initialize user points
-    const { error: pointsError } = await supabase
-      .from('user_points')
-      .insert({
-        user_id: user_id,
-        daily_points: 100,
-        weekly_points: 0
-      })
+//     // Initialize user points
+//     const { error: pointsError } = await supabase
+//       .from('user_points')
+//       .insert({
+//         user_id: user_id,
+//         daily_points: 100,
+//         weekly_points: 0
+//       })
 
-    if (pointsError) throw pointsError
+//     if (pointsError) throw pointsError
 
-    await store.loadStudents(classId.value)
-    showAddStudent.value = false
-    studentForm.value = { name: '', email: '' }
-    showMenu.value = false
+//     await store.loadStudents(classId.value)
+//     showAddStudent.value = false
+//     studentForm.value = { name: '', email: '' }
+//     showMenu.value = false
     
-  } catch (error) {
-    console.error('Error adding student:', error)
-    alert('שגיאה בהוספת תלמיד. אנא נסה שוב.')
-  }
-}
+//   } catch (error) {
+//     console.error('Error adding student:', error)
+//     alert('שגיאה בהוספת תלמיד. אנא נסה שוב.')
+//   }
+// }
 
+// const deleteStudent = async (studentId: number) => {
+//   if (!confirm('האם אתה בטוח שברצונך למחוק תלמיד זה?')) return
 
-const saveClass = async () => {
-  if (!classId.value) return
+//   try {
+//     // Delete the class_users association first
+//     const { error: classUserError } = await supabase
+//       .from('class_users')
+//       .delete()
+//       .eq('user_id', studentId)
 
-  try {
-    const { error } = await supabase
-      .from('classes')
-      .update({
-        name: classForm.value.name,
-        school_name: classForm.value.school_name
-      })
-      .eq('id', classId.value)
+//     if (classUserError) throw classUserError
 
-    if (error) throw error
+//     // Delete the user_points
+//     const { error: pointsError } = await supabase
+//       .from('user_points')
+//       .delete()
+//       .eq('user_id', studentId)
 
-    await store.loadStudents(classId.value)
-    showEditClass.value = false
-    showMenu.value = false
-  } catch (error) {
-    console.error('Error updating class:', error)
-    alert('שגיאה בעדכון הכיתה. אנא נסה שוב.')
-  }
-}
+//     if (pointsError) throw pointsError
 
-const deleteStudent = async (studentId: number) => {
-  if (!confirm('האם אתה בטוח שברצונך למחוק תלמיד זה?')) return
+//     // Delete the user
+//     const { error: userError } = await supabase
+//       .from('users')
+//       .delete()
+//       .eq('id', studentId)
 
-  try {
-    // Delete the class_users association first
-    const { error: classUserError } = await supabase
-      .from('class_users')
-      .delete()
-      .eq('user_id', studentId)
+//     if (userError) throw userError
 
-    if (classUserError) throw classUserError
+//     // Reload students to update the UI
+//     if (classId.value) {
+//       await store.loadStudents(classId.value)
+//     }
+//     activeStudentMenu.value = null
+//   } catch (error) {
+//     console.error('Error deleting student:', error)
+//     alert('שגיאה במחיקת התלמיד. אנא נסה שוב.')
+//   }
+// }
 
-    // Delete the user_points
-    const { error: pointsError } = await supabase
-      .from('user_points')
-      .delete()
-      .eq('user_id', studentId)
-
-    if (pointsError) throw pointsError
-
-    // Delete the user
-    const { error: userError } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', studentId)
-
-    if (userError) throw userError
-
-    // Reload students to update the UI
-    if (classId.value) {
-      await store.loadStudents(classId.value)
-    }
-    activeStudentMenu.value = null
-  } catch (error) {
-    console.error('Error deleting student:', error)
-    alert('שגיאה במחיקת התלמיד. אנא נסה שוב.')
-  }
-}
-
-const cancelAddStudent = () => {
-  showAddStudent.value = false
-  studentForm.value = { name: '', email: '' }
-}
-
-const cancelEdit = () => {
-  showEditClass.value = false
-  showMenu.value = false
-  classForm.value.name = store.currentClass.value?.name || ''
-  classForm.value.school_name = store.currentClass.value?.school_name || ''
-}
+// const cancelAddStudent = () => {
+//   showAddStudent.value = false
+//   studentForm.value = { name: '', email: '' }
+// }
 
 const handleLogout = async () => {
   await supabase.auth.signOut()
@@ -549,8 +462,22 @@ onMounted(initializeComponent)
 .header-info h2 {
   margin: 0;
   color: #2c3e50;
+  margin-right: 10px;
 }
 
+.back-button {
+  background: #888ae0;
+  color: white;
+  align-content: flex-end;
+  max-width: 90px;
+  max-height: 60px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
 .school-class-info {
   display: flex;
   gap: 20px;
@@ -562,6 +489,7 @@ onMounted(initializeComponent)
   margin: 0;
   font-size: 1em;
   color: #666;
+  justify-content: center;
 }
 
 .user-info {
@@ -572,6 +500,7 @@ onMounted(initializeComponent)
 .avatar-menu {
   position: relative;
   cursor: pointer;
+  
 }
 
 .user-avatar {
@@ -643,6 +572,7 @@ onMounted(initializeComponent)
   border-radius: 12px;
   background: white;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
   transition: all 0.3s ease;
