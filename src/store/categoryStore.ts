@@ -24,6 +24,87 @@ interface CacheData {
   classId?: number
 }
 
+
+
+// export const useCategoriesStore = defineStore('categoriesStore', {
+//   state: () => ({
+//     loading : false,
+//     error: null as string | null,
+//     categories: [] as Category[]
+//   }),
+//   actions: {
+//     async loadCategories(classId: number) {
+//       try {
+//         this.loading = true
+//         this.error = null
+ 
+//        // Reset pending changes
+//        pendingChanges.value = {
+//          categories: new Map(),
+//          subcategories: new Map()
+//        }
+//        // Try to load from cache first
+//        const cached = loadFromCache(classId)
+       
+//        if (cached) {
+//          categoriesRaw.value = cached.categories
+//          subCategoriesRaw.value = cached.subCategories
+//          return
+//        }
+//        console.log('load categories from db', classId)
+//        if (classId) {
+//          // Load categories with selection status
+//          const { data: catsData, error: catsError } = await supabase
+//            .rpc('get_categories_with_selection', { p_class_id: classId })
+ 
+//          if (catsError) throw catsError
+//          if (catsData) {
+//            console.log('catsData', catsData)
+//            categoriesRaw.value = catsData
+//          }
+ 
+//          // Load subcategories with selection status
+//          const { data: subsData, error: subsError } = await supabase
+//            .rpc('get_sub_categories_with_selection', { p_class_id: classId })
+ 
+//          if (subsError) throw subsError
+//          if (subsData) {
+//            subCategoriesRaw.value = subsData
+//          }
+ 
+//          // Save to cache
+//          saveToCache(classId, {
+//            categories: categoriesRaw.value,
+//            subCategories: subCategoriesRaw.value,
+//            timestamp: Date.now(),
+//            classId
+//          })
+//        } 
+//      } catch (err) {
+//        console.error('Error loading categories:', err)
+//        error.value = err instanceof Error ? err.message : 'An error occurred'
+//      } finally {
+//        loading.value = false
+//      }
+//    }
+ 
+//    const addCategory = async (classId: number, category: Omit<Category, 'id'>) => {
+//      const { data, error: insertError } = await supabase
+//        .from('categories')
+//        .insert(category)
+//        .select()
+//        .single()
+ 
+//      if (insertError) throw insertError
+ 
+//      categoriesRaw.value.push(data)
+//      clearCache(classId) // Clear cache when adding a category
+//      return data
+//      }
+//     }
+//   })
+// })
+
 export const useCategoryStore = defineStore('categories', () => {
   const categoriesRaw = ref<Category[]>([])
   const subCategoriesRaw = ref<Subcategory[]>([])

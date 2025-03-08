@@ -14,17 +14,20 @@
     <div class="categories-list">
       <div v-for="category in categoryStore.categories" :key="category.id" class="category-card">
         <div class="category-header">
-          <div class="category-title" :class="['type-badge', category.type]">
+          <div class="category-title">
             <input 
               type="checkbox" 
               :checked="category.is_selected"
               @change="toggleCategory(category.id, ($event.target as HTMLInputElement).checked)"
               class="category-checkbox"
             />
-            <h3  class="category-name">
+            <h3 @click="toggleCollapse(category.id)" class="category-name">
               {{ category.name }}
+              <span class="collapse-icon">{{ isCollapsed(category.id) ? '▼' : '▲' }}</span>
             </h3>
-            <span @click="toggleCollapse(category.id)" class="collapse-icon">{{ isCollapsed(category.id) ? '▼' : '▲' }}</span>
+            <span :class="['type-badge', category.type]">
+              {{ category.type === 'positive' ? 'חיובי' : 'שלילי' }}
+            </span>
           </div>
         </div>
 
@@ -54,7 +57,7 @@
               <input 
                 type="checkbox" 
                 :checked="sub.is_selected"
-                @change="toggleSubcategory(sub.id, ($event.target as HTMLInputElement).checked)"
+                @change="toggleSubcategory(sub.id, category.id, ($event.target as HTMLInputElement).checked)"
                 class="subcategory-checkbox"
               />
               <span class="subcategory-name">{{ sub.name }}</span>
@@ -179,6 +182,8 @@ const toggleAllSubcategories = (categoryId: number, selected: boolean) => {
   subs.forEach(sub => {
     categoryStore.toggleSubcategorySelection(sub.id, selected, isChanged)
   })
+  // Also select/deselect the parent category
+  categoryStore.toggleCategorySelection(categoryId, selected, isChanged)
 }
 
 const toggleCollapse = (categoryId: number) => {
@@ -195,10 +200,30 @@ const isCollapsed = (categoryId: number) => {
 
 const toggleCategory = (categoryId: number, selected: boolean) => {
   categoryStore.toggleCategorySelection(categoryId, selected, isChanged)
+  // Also select/deselect all subcategories
+  const subs = getSubcategories(categoryId)
+  subs.forEach(sub => {
+    categoryStore.toggleSubcategorySelection(sub.id, selected, isChanged)
+  })
 }
 
-const toggleSubcategory = (subcategoryId: number, selected: boolean) => {
+const toggleSubcategory = (subcategoryId: number, categoryId: number, selected: boolean) => {
   categoryStore.toggleSubcategorySelection(subcategoryId, selected, isChanged)
+  
+  // Check if we need to update the parent category's selection
+  const category = categoryStore.categories.find(c => c.id === categoryId)
+  if (category) {
+    const subs = getSubcategories(categoryId)
+    const noneSelected = subs.every(sub => !sub.is_selected)
+    
+    if (selected && !category.is_selected) {
+      // If selecting a subcategory and parent isn't selected, select it
+      categoryStore.toggleCategorySelection(categoryId, true, isChanged)
+    } else if (!selected && category.is_selected && noneSelected) {
+      // If deselecting a subcategory and all are now deselected, deselect parent
+      categoryStore.toggleCategorySelection(categoryId, false, isChanged)
+    }
+  }
 }
 
 const saveChanges = async () => {

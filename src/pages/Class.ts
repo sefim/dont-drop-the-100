@@ -3,7 +3,9 @@ import { useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
 import { useStore } from '../store'
 import type { ClassState } from '../types'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 export function useClass() {
   const router = useRouter()
   const store = useStore()
@@ -19,7 +21,7 @@ export function useClass() {
   }
 
   const goToStudent = (id: number) => {
-    router.push(`/class/${store.currentClass.value?.id}/student/${id}`)
+    router.push(`/class/${studentsStore.currentClass?.id}/student/${id}`)
   }
 
   const goBack = () => {
@@ -38,7 +40,7 @@ export function useClass() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         if (!isNaN(classId)) {
-          await store.loadStudents(classId)
+          await studentsStore.loadStudents(classId)
         } else {
           console.error('Invalid class ID')
           router.push('/')

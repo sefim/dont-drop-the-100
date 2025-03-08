@@ -94,7 +94,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../supabaseClient'
 import { UserLog } from '../types'
+import { useStore } from '../store'
 
+const store = useStore()
 const student = ref<Student | null>(null)
 const classes = ref<Class[]>([])
 const showAvatarSelector = ref(false)
@@ -122,26 +124,13 @@ interface Avatar {
   url: string;
 }
 
-
 const generateAvatars = () => {
   for (let i = 0; i < numAvatars; i++) {
-    const seed = generateRandomSeed(); // Function to generate a random seed (see below)
+    const seed = store.generateRandomSeed(); // Function to generate a random seed (see below)
     const url = getDicebearAvatarURL(seed, "avataaars", { background: "#e0e0e0" }); // Example options
     avatars.value.push({ seed, url });
   }
 };
-
-const generateRandomSeed = () => {
-    // Generate a random string (you can adjust the length)
-    const length = 10;
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-}
 
 function getDicebearAvatarURL(seed: string, style = "avataaars", options: { [key: string]: string } = {}) {
   const baseUrl = `https://api.dicebear.com/7.x/${style}/seed/${seed}`;

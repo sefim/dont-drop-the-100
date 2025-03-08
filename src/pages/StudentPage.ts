@@ -2,7 +2,9 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
 import type { StudentPageState, UserLog } from '../types'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 export function useStudentPage() {
   const store = useStore()
   const route = useRoute()
@@ -16,8 +18,8 @@ export function useStudentPage() {
   const studentId = computed(() => parseInt(route.params.id as string, 10))
 
   const student = computed(() => {
-    if (!studentId.value || !store.students.value) return null
-    return store.students.value[studentId.value]
+    if (!studentId.value || !studentsStore.students) return null
+    return studentsStore.students[studentId.value]
   })
 
   const getHebrewDay = (date: Date) => {
@@ -56,7 +58,7 @@ export function useStudentPage() {
 
   const handleUndo = async (logEntry: UserLog) => {
     if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
-      const success = await store.undoAction(logEntry, studentId.value)
+      const success = await store.undoAction(logEntry, classId.value, studentId.value)
       if (success) {
         await loadLogs()
       }
@@ -70,7 +72,7 @@ export function useStudentPage() {
   }
 
   const handleBack = async () => {
-    await store.loadStudents()
+    await studentsStore.loadStudents(classId.value)
     router.push('/')
   }
 

@@ -2,7 +2,9 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
 import type { ShopPageState } from '../types'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 export function useShopPage() {
   const store = useStore()
   const route = useRoute()
@@ -15,8 +17,8 @@ export function useShopPage() {
   const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
   const student = computed(() => {
-    if (!studentId.value || !store.students.value) return null
-    return store.students.value[studentId.value]
+    if (!studentId.value || !studentsStore.students) return null
+    return studentsStore.students[studentId.value]
   })
 
   const purchaseItem = async (item: { name: string, cost: number }) => {
@@ -26,7 +28,7 @@ export function useShopPage() {
   }
 
   const handleBack = async () => {
-    await store.loadStudents()
+    await studentsStore.loadStudents(classId.value)
     router.push(`/student/${studentId.value}`)
   }
 

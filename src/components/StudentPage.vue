@@ -100,7 +100,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
 import { useCategoryStore } from '../store/categoryStore'
 import type { UserLog } from '../types'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
@@ -116,8 +118,8 @@ const studentId = computed(() => parseInt(route.params.id as string, 10))
 const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
 const student = computed(() => {
-  if (!studentId.value || !store.students.value) return null
-  return store.students.value[studentId.value] || null
+  if (!studentId.value || !studentsStore.students) return null
+  return studentsStore.students[studentId.value] || null
 })
 
 const groupedLogs = computed<GroupedLogs>(() => {
@@ -186,7 +188,7 @@ const handleScoreUpdate = async (points: number, category: string, subcategory: 
 
 const handleUndo = async (logEntry: UserLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
-    const success = await store.undoAction(logEntry, studentId.value)
+    const success = await store.undoAction(logEntry, classId.value, studentId.value)
     if (success) {
       await loadLogs()
     }
@@ -211,7 +213,7 @@ const initializeComponent = async () => {
   if (classId.value) {
     try {
       await Promise.all([
-        store.loadStudents(classId.value),
+        studentsStore.loadStudents(classId.value),
         categoryStore.loadCategories(classId.value),
         loadLogs()
       ])
@@ -400,7 +402,7 @@ onMounted(initializeComponent)
 
 .sub-categories {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
   gap: 8px;
 }
 

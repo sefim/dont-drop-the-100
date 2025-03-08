@@ -79,7 +79,9 @@ import { useStore } from '../store'
 import { useShopStore } from '../store/shopStore'
 import { supabase } from '../supabaseClient'
 import type { UserLog } from '../types'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 const store = useStore()
 const shopStore = useShopStore()
 const route = useRoute()
@@ -90,12 +92,12 @@ const studentId = computed(() => parseInt(route.params.id as string, 10))
 const classId = computed(() => parseInt(route.params.class_id as string, 10))
 
 const student = computed(() => {
-  if (!studentId.value || !store.students.value) return null
-  return store.students.value[studentId.value] || null
+  if (!studentId.value || !studentsStore.students) return null
+  return studentsStore.students[studentId.value] || null
 })
 const handleUndo = async (logEntry: UserLog) => {
   if (confirm('האם אתה בטוח שברצונך לבטל פעולה זו?')) {
-    const success = await store.undoAction(logEntry, studentId.value)
+    const success = await store.undoAction(logEntry, classId.value, studentId.value)
     if (success) {
       await loadPurchaseHistory()
     }
@@ -151,13 +153,13 @@ const purchaseItem = async (item: { name: string, cost: number }) => {
 }
 
 const handleBack = async () => {
-  await store.loadStudents(classId.value)
+  await studentsStore.loadStudents(classId.value)
   router.push(`/class/${classId.value}/student/${studentId.value}`)
 }
 
 onMounted(async () => {
   await Promise.all([
-    store.loadStudents(classId.value),
+    studentsStore.loadStudents(classId.value),
     shopStore.loadItems(classId.value),
     loadPurchaseHistory()
   ])

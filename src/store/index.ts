@@ -2,109 +2,32 @@ import { ref, computed } from 'vue'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../supabaseClient'
 import { useCategoryStore } from './categoryStore'
-import type { Class, StudentDictionary, UserLog, ShopItem } from '../types'
+import type { Class, UserLog, ShopItem } from '../types'
 import router from '../router'
+import { useStudentsStore } from '../store/studentsStore'
+
 
 export const useStore = () => {
-  const students = ref<StudentDictionary>({})
   const classPoints = ref(0)
   const currentUser = ref<User | null>(null)
-  const currentClass = ref<Class | null>(null)
-  const userState = ref('')
+    const userState = ref('')
   const categoryStore = useCategoryStore()
 
-  const shopItems: ShopItem[] = [
-    { name: "שטיח2/ ליקריץ ", cost: 85 },
-    { name: "סוכרייה על מקל", cost: 100 },
-    { name: "שרשרת סוכריות", cost: 100 },
-    { name: "שוקולד", cost: 200 },
-    { name: "רול אפ עם גלידה", cost: 400 },
-    { name: "20 דקות מחשב", cost: 150 },
-    { name: "רבע שעה בחוץ בחצר", cost: 150 },
-    { name: "רבע שעה טלפון", cost: 150 },
-    { name: "חצי שעה טלפון", cost: 300 },
-    { name: "טלפון שיעור 45 דק", cost: 450 },
-    { name: "צופר הפתעה", cost: 300 },
-    { name: "משחק קופסא/סנוקר 20 דקות", cost: 200 },
-  ]
-
-  const loadStudents = async (classId?: number) => {
-    console.log(`[loadStudents] Starting to load students for class ${classId}`)
-    
-    try {
-      if (!classId || isNaN(classId)) {
-        console.error('[loadStudents] Invalid or missing class ID')
-        return
-      }
-
-      // First, get the class details
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .single()
-
-      if (classError) {
-        console.error('[loadStudents] Error fetching class:', classError)
-        return
-      }
-
-      if (!classData) {
-        console.error('[loadStudents] No class found with ID:', classId)
-        return
-      }
-
-      currentClass.value = classData
-      if (currentClass.value) {
-        console.log(`[loadStudents] Found class: ${currentClass.value.name} ${currentClass.value.points}`)
-      }
-
-      // Then load students with their points
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('class_users')
-        .select(`
-          user_id,
-          users!inner (
-            id,
-            name,
-            avatar,
-            user_points (
-              daily_points,
-              weekly_points
-            )
-          )
-        `)
-        .eq('class_id', classId)
-        .eq('users.role', 'student')
-      if (studentsError) {
-        console.error('[loadStudents] Error fetching students:', studentsError)
-        return
-      }
-
-      console.log(`[loadStudents] Found ${studentsData?.length || 0} students`)
-      let studentDict: StudentDictionary = {}        
-      if (studentsData) {
-        studentsData.flatMap((item) => item.users).forEach(student => {
-          let points = Array.isArray(student.user_points) ? student.user_points[0] : student.user_points;
-          
-          studentDict[student.id] = {
-            id: student.id,
-            name: student.name,
-            dailyPoints: points.daily_points ?? 100,
-            weeklyPoints: points.weekly_points ?? 0,
-            avatar: student.avatar 
-          }
-        })  
-        students.value = studentDict
-        console.log('[loadStudents] Successfully loaded all students')
-      }
-    } catch (error) {
-      console.error('[loadStudents] Unexpected error:', error)
+  const generateRandomSeed = () => {
+    // Generate a random string (you can adjust the length)
+    const length = 10;
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
+    return result;
   }
-
-  const undoAction = async (logEntry: UserLog, studentId: number) => {
-    const student = students.value[studentId]
+  
+  const undoAction = async (logEntry: UserLog, classId: number, studentId: number) => {
+    const studentsStore = useStudentsStore()
+    const student = studentsStore.students[studentId]
     if (!student) return false
 
     // Calculate the reverse points change
@@ -112,18 +35,20 @@ export const useStore = () => {
 
     // Update the student's score
     const { error: updateError } = await supabase
-      .from('students')
-      .update({ daily_score: student.dailyPoints + reversePoints })
-      .eq('id', studentId)
+      .from('user_points')
+      .update({ daily_points: student.dailyPoints + reversePoints })
+      .eq('user_id', studentId)
+      .eq('class_id', classId)
 
     if (updateError) {
       console.error('Error undoing action:', updateError)
       return false
     }
 
+    console.log('Undoing action:', logEntry)
     // Delete the log entry
     const { error: deleteError } = await supabase
-      .from('score_logs')
+      .from('user_logs')
       .delete()
       .eq('id', logEntry.id)
 
@@ -227,11 +152,11 @@ export const useStore = () => {
         console.error('[updateStudentScore] Error creating log:', logError)
         return
       }
-
+      const studentsStore = useStudentsStore()
       // Update local state
-      if (students.value[studentId]) {
-        students.value[studentId] = {
-          ...students.value[studentId],
+      if (studentsStore.students[studentId]) {
+        studentsStore.students[studentId] = {
+          ...studentsStore.students[studentId],
           dailyPoints: newDailyPoints
         }
       }
@@ -243,14 +168,15 @@ export const useStore = () => {
   }
 
   const endDay = async () => {
+    const studentsStore = useStudentsStore()
     console.log('Ending Day - Processing end of day calculations')
-    if (!currentClass.value) return
+    if (!studentsStore.currentClass) return
 
     // check if already last day was updated
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .select('*')
-      .eq('id', currentClass.value.id)
+      .eq('id', studentsStore.currentClass.id)
       .single()
 
     if (classError || !classData) {
@@ -258,7 +184,7 @@ export const useStore = () => {
       return
     }
 
-    currentClass.value = classData
+    studentsStore.currentClass = classData
     if (canEndDay.value === false) {
       console.log('Already updated last day')
       alert('היום כבר נסגר')
@@ -266,15 +192,15 @@ export const useStore = () => {
       return
     }
     
-
+    
     try {
-      for (const [userId, student] of Object.entries(students.value)) {
+      for (const [userId, student] of Object.entries(studentsStore.students)) {
         let weeklyScoreIncrease = 0
         
         if (student.dailyPoints && student.dailyPoints >= 85) {
           weeklyScoreIncrease = student.dailyPoints
-          if (currentClass.value) {
-            currentClass.value.points += 1
+          if (studentsStore.currentClass) {
+            studentsStore.currentClass.points += 1
           }
         } else if (student.dailyPoints && student.dailyPoints >= 70) {
           weeklyScoreIncrease = 50
@@ -297,7 +223,7 @@ export const useStore = () => {
         }
 
         // Update local state
-        students.value[userId as unknown as number] = {
+        studentsStore.students[userId as unknown as number] = {
           ...student,
           dailyPoints: 100,
           weeklyPoints: newWeeklyScore
@@ -305,14 +231,14 @@ export const useStore = () => {
       }
 
       // Update class's last day
-      if (currentClass.value) {
+      if (studentsStore.currentClass) {
         const { error: classError } = await supabase
           .from('classes')
           .update({
-            points: currentClass.value.points,
+            points: studentsStore.currentClass.points,
             last_day: new Date().getDay()
           })
-          .eq('id', currentClass.value.id)
+          .eq('id', studentsStore.currentClass.id)
 
         if (classError) {
           console.error('Error updating class:', classError)
@@ -354,7 +280,8 @@ export const useStore = () => {
           console.error(`Error resetting weekly points for user ${user.user_id}:`, error)
         }
       }
-      if (currentClass.value?.points !== null) {
+      const studentsStore = useStudentsStore()
+      if (studentsStore.currentClass?.points !== null) {
         const { error } = await supabase
           .from('classes')
           .update({ points: 0 })
@@ -365,7 +292,8 @@ export const useStore = () => {
         }
       }
       // Reload students to refresh the UI
-      await loadStudents(classId)
+      
+      await studentsStore.loadStudents(classId)
       alert('השבוע אופס בהצלחה')
     } catch (error) {
       console.error('Error resetting weekly scores:', error)
@@ -373,29 +301,31 @@ export const useStore = () => {
   }
 
   const canEndDay = computed(() => {
-    if (!currentClass.value) {
+    const studentsStore = useStudentsStore()
+    if (!studentsStore.currentClass) {
       console.log('[canEndDay] No current class')
       return false
     }
 
     const today = new Date().getDay()
     console.log('[canEndDay] Current day:', today)
-    console.log('[canEndDay] Last day:', currentClass.value.last_day)
+    console.log('[canEndDay] Last day:', studentsStore.currentClass.last_day)
 
     // If last_day is null, allow ending the day
-    if (currentClass.value.last_day === null) {
+    if (studentsStore.currentClass.last_day === null) {
       return true
     }
 
     // Otherwise, only allow if it's a different day
-    return currentClass.value.last_day !== today
+    return studentsStore.currentClass.last_day !== today
   })
 
   const purchaseItem = async (studentId: number, classId: number, item: ShopItem) => {
-    if (!students.value[studentId]) return
+    const studentsStore = useStudentsStore()
+    if (!studentsStore.students[studentId]) return
 
     try {
-      const student = students.value[studentId]
+      const student = studentsStore.students[studentId]
       const newWeeklyPoints = student.weeklyPoints - item.cost
 
       const { error } = await supabase
@@ -426,7 +356,7 @@ export const useStore = () => {
         return
       }
       // Update local state
-      students.value[studentId] = {
+      studentsStore.students[studentId] = {
         ...student,
         weeklyPoints: newWeeklyPoints
       }
@@ -442,16 +372,13 @@ export const useStore = () => {
     return isoDateString
   }
   
+ 
   return {
-    students,
     classPoints,
     categories: categoryStore.categories,
     subCategories: categoryStore.subCategories,
-    shopItems,
     currentUser,
-    currentClass,
     canEndDay,
-    loadStudents,
     loadStudentLogs,
     updateStudentScore,
     endDay,
@@ -459,6 +386,7 @@ export const useStore = () => {
     purchaseItem,
     undoAction,
     getDaysAgo,
-    userState
+    userState,
+    generateRandomSeed
   }
 }

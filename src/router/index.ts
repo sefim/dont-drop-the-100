@@ -6,6 +6,7 @@ import StudentPage from '../components/StudentPage.vue'
 import ShopPage from '../components/ShopPage.vue'
 import ShopManager from '../components/ShopManager.vue'
 import AdminPage from '../components/AdminPage.vue'
+import StudentManagement from '../components/StudentManagement.vue'
 
 
 const router = createRouter({
@@ -23,6 +24,11 @@ const router = createRouter({
     {
       path: '/class/:class_id/shop',
       component: ShopManager,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/class/:class_id/students',
+      component: StudentManagement,
       meta: { requiresAuth: true },
     },
     {

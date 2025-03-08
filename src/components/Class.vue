@@ -25,31 +25,14 @@
       </div>
     </div>
     <div class="school-class-info">
-      <h3>בית ספר {{ store.currentClass.value?.school_name }}</h3>
-      <h3>כיתה {{ store.currentClass.value?.name }}</h3>
-      
+      <h3>בית ספר {{ studentsStore.currentClass?.school_name }}</h3>
+      <h3>כיתה {{ studentsStore.currentClass?.name }}</h3>
     </div>
-    <!-- Teachers Section 
-    <div class="teachers-section">
-      <span>
-        <h3>מורי הכיתה</h3>
-      </span>
-      <span>
-      <div class="teachers-list">
-        <div v-for="teacher in teachers" :key="teacher.id" class="teacher-card">
-          
-            <span class="teacher-name">{{ teacher.name }}</span>
-          
-        </div>
-      </div>
-    </span>
-    </div>
-    -->
     <div class="current-day">
       <h2>{{ getCurrentDay() }}</h2>
     </div>
     <div class="class-score" v-if="classHasPoints">
-      <h2>ציון שבועי: {{ store.currentClass.value?.points }}</h2>
+      <h2>ציון שבועי: {{ studentsStore.currentClass?.points }}</h2>
     </div>
     <div v-if="sortedStudents.length > 0" class="students">
       <div 
@@ -73,19 +56,6 @@
             <p>ציון שבועי: {{ student.weeklyPoints }}</p>
           </div>
         </div>
-        <!-- <div class="student-menu">
-          <button @click="showStudentMenu(student.id)" class="menu-trigger">
-            <span class="dots"></span>
-          </button>
-          <div v-if="activeStudentMenu === student.id" class="menu">
-            <button @click="showUpdateScore(student)" class="menu-item">
-              עדכן ציון
-            </button>
-            <button @click="deleteStudent(student.id)" class="menu-item delete">
-              מחק תלמיד
-            </button>
-          </div>
-        </div> -->
       </div>
     </div>
     <div v-if="sortedStudents.length === 0" class="no-students">
@@ -146,7 +116,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from '../store'
 import { supabase } from '../supabaseClient'
 import type { User } from '@supabase/supabase-js'
+import { useStudentsStore } from '../store/studentsStore'
 
+const studentsStore = useStudentsStore()
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
@@ -170,14 +142,6 @@ const state = ref<State>({
 })
 
 const showMenu = ref(false)
-// const activeStudentMenu = ref<number | null>(null)
-// const showAddStudent = ref(false)
-
-// const studentForm = ref({
-//   name: '',
-//   email: ''
-// })
-
 const showScoreModal = ref(false)
 const selectedStudent = ref<any>(null)
 const scoreChange = ref<number>(0)
@@ -189,13 +153,13 @@ const classId = computed(() => {
 })
 
 const classHasPoints = computed(() => {
-  return store.currentClass.value?.points !== null;
+  return studentsStore.currentClass?.points !== null;
 });
 
 const sortedStudents = computed(() => {
-  if (!store.students.value) return [];
+  if (!studentsStore.students) return [];
 
-  const studentsArray = Object.values(store.students.value);
+  const studentsArray = Object.values(studentsStore.students);
   const sorted = studentsArray.sort((a, b) => a.id - b.id);
   
   return sorted;
@@ -238,7 +202,7 @@ const updateStudentScore = async () => {
 
     // Reload students to update the UI
     if (classId.value) {
-      await store.loadStudents(classId.value)
+      await studentsStore.loadStudents(classId.value)
     }
 
     cancelScoreUpdate()
@@ -422,7 +386,7 @@ const initializeComponent = async () => {
     }
 
     await Promise.all([
-      store.loadStudents(classId.value),
+      studentsStore.loadStudents(classId.value),
       loadTeachers(classId.value)
     ])
   } catch (error) {
