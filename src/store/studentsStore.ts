@@ -12,7 +12,6 @@ export const useStudentsStore = defineStore('studentsStore', {
   }),
   actions: {
     async loadStudents(classId: number) {
-        this.loadAuthUser()
         this.loadUser()
         this.loadClass(classId)
         console.log(`[loadStudents] Starting to load students for class ${classId}`)
@@ -125,27 +124,25 @@ export const useStudentsStore = defineStore('studentsStore', {
         }
       },
       async loadUser() {      
-        // Get student data
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            console.error('Error: Auth user is null')
+            return
+        }
+        if (user) {
+          this.currentAuthUser = user
+        } 
+        
         const { data: userData } = await supabase
-        .from('users')
-        .select(`id, name, role, email, avatar`)
-        .eq('email', this.currentAuthUser.email)
-        .single()
+            .from('users')
+            .select(`id, name, role, email, avatar`)
+            .eq('email', this.currentAuthUser.email)
+            .single()
         
         if (userData) {
           this.currentUser = userData
         } else {
           console.error('Error: userData is null')
-        }
-      },
-      async loadAuthUser() {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        
-        if (user) {
-          this.currentAuthUser = user
-        } else {
-          console.error('Error: user is null')
         }
       },
   }

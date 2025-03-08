@@ -15,17 +15,21 @@
   import { useStore } from '../store'
   import { supabase } from '../supabaseClient'
   import { onMounted } from 'vue'
+  import { useStudentsStore } from '../store/studentsStore'
 
+  const studentsStore = useStudentsStore()
   const store = useStore()
 
   onMounted(async () => {
     console.log('starting landing page')
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       console.log('User is not logged in, Login')
       store.userState.value = 'Login'
     }
     else {
+      studentsStore.currentAuthUser = user
       console.log('User is logged in, find role')
       const { data: userData } = await supabase
         .from('users')
