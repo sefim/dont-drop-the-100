@@ -62,21 +62,32 @@
     <div class="score-logs">
       <h3>היסטוריית פעולות</h3>
       <div class="log-entries">
-        <div v-for="log in scoreLogs" :key="log.id" class="log-entry">
-          <div class="log-content">
-            <div class="log-main">
-              <span class="log-category">{{ log.category }}</span>
-              <span class="log-subcategory">{{ log.subcategory }}</span>
-              <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
-                {{ log.points > 0 ? '+' : ''}}{{ log.points }}
-              </span>
-            </div>
-            <div class="log-datetime">
-              <span class="log-date">{{ formatDate(log.created_at) }}</span>
-              <span class="log-time">{{ formatTime(log.created_at) }}</span>
+        <div v-for="(dayLogs, date) in groupedLogs" :key="date" class="day-group">
+          <div 
+            class="day-header" 
+            @click="toggleDay(date as string)"
+            :class="{ 'collapsed': collapsedDays.has(date as string) }"
+          >
+            <span class="day-date">{{ formatDate(date as string) }}</span>
+            <span class="collapse-icon">{{ collapsedDays.has(date as string) ? '▼' : '▲' }}</span>
+          </div>
+          <div v-show="!collapsedDays.has(date as string)" class="day-logs">
+            <div v-for="log in dayLogs" :key="log.id" class="log-entry">
+              <div class="log-content">
+                <div class="log-main">
+                  <span class="log-category">{{ log.category }}</span>
+                  <span class="log-subcategory">{{ log.subcategory }}</span>
+                  <span :class="['log-points', log.points >= 0 ? 'positive' : 'negative']">
+                    {{ log.points > 0 ? '+' : ''}}{{ log.points }}
+                  </span>
+                </div>
+                <div class="log-datetime">
+                  <span class="log-time">{{ formatTime(log.created_at) }}</span>
+                </div>
+              </div>
+              <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
             </div>
           </div>
-          <button @click="handleUndo(log)" class="square-button undo-button">בטל</button>
         </div>
       </div>
     </div>
@@ -96,6 +107,10 @@ const store = useStore()
 const categoryStore = useCategoryStore()
 const scoreLogs = ref<UserLog[]>([])
 const activeTab = ref<number | null>(null)
+const collapsedDays = ref(new Set<string>())
+interface GroupedLogs {
+  [date: string]: UserLog[];
+}
 
 const studentId = computed(() => parseInt(route.params.id as string, 10))
 const classId = computed(() => parseInt(route.params.class_id as string, 10))
@@ -105,6 +120,25 @@ const student = computed(() => {
   return store.students.value[studentId.value] || null
 })
 
+const groupedLogs = computed<GroupedLogs>(() => {
+  const groups: GroupedLogs = {}
+  scoreLogs.value.forEach(log => {
+    const date = new Date(log.created_at).toISOString().split('T')[0]
+    if (!groups[date]) {
+      groups[date] = []
+    }
+    groups[date].push(log)
+  })
+  return groups
+})
+
+const toggleDay = (date: string) => {
+  if (collapsedDays.value.has(date)) {
+    collapsedDays.value.delete(date)
+  } else {
+    collapsedDays.value.add(date)
+  }
+}
 const getSubcategoriesForCategory = (categoryId: number) => {
   return categoryStore.subCategories.filter(sub => sub.category_id === categoryId && sub.is_selected)
 }
@@ -134,6 +168,13 @@ const formatTime = (timestamp: string) => {
 
 const loadLogs = async () => {
   scoreLogs.value = await store.loadStudentLogs(studentId.value)
+  // Initialize all days as collapsed
+  const dates = new Set(
+    scoreLogs.value.map(log => 
+      new Date(log.created_at).toISOString().split('T')[0]
+    )
+  )
+  collapsedDays.value = dates
 }
 
 const handleScoreUpdate = async (points: number, category: string, subcategory: string) => {
@@ -404,8 +445,51 @@ onMounted(initializeComponent)
 }
 
 .log-entries {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.day-group {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.day-header {
+  padding: 15px;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.day-header:hover {
+  background: #eee;
+}
+
+.day-header.collapsed {
+  border-bottom: none;
+}
+
+.day-date {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.collapse-icon {
+  color: #666;
+  transition: transform 0.3s ease;
+}
+
+.day-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #f8f9fa;
 }
 
 .log-entry {
@@ -414,8 +498,6 @@ onMounted(initializeComponent)
   align-items: center;
   padding: 12px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .log-content {

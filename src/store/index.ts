@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '../supabaseClient'
 import { useCategoryStore } from './categoryStore'
 import type { Class, StudentDictionary, UserLog, ShopItem } from '../types'
+import router from '../router'
 
 export const useStore = () => {
   const students = ref<StudentDictionary>({})
@@ -245,6 +246,27 @@ export const useStore = () => {
     console.log('Ending Day - Processing end of day calculations')
     if (!currentClass.value) return
 
+    // check if already last day was updated
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('id', currentClass.value.id)
+      .single()
+
+    if (classError || !classData) {
+      console.error('[endDay] Error fetching class:', classError)
+      return
+    }
+
+    currentClass.value = classData
+    if (canEndDay.value === false) {
+      console.log('Already updated last day')
+      alert('היום כבר נסגר')
+      router.go(0)
+      return
+    }
+    
+
     try {
       for (const [userId, student] of Object.entries(students.value)) {
         let weeklyScoreIncrease = 0
@@ -296,6 +318,8 @@ export const useStore = () => {
           console.error('Error updating class:', classError)
         }
       }
+      router.go(0)
+      console.log('End of day calculations complete')
     } catch (error) {
       console.error('Error in endDay:', error)
     }
@@ -342,6 +366,7 @@ export const useStore = () => {
       }
       // Reload students to refresh the UI
       await loadStudents(classId)
+      alert('השבוע אופס בהצלחה')
     } catch (error) {
       console.error('Error resetting weekly scores:', error)
     }

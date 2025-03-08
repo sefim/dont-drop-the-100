@@ -193,13 +193,11 @@ const classHasPoints = computed(() => {
 });
 
 const sortedStudents = computed(() => {
-  console.log("store.students.value:", store.students.value);
   if (!store.students.value) return [];
 
   const studentsArray = Object.values(store.students.value);
   const sorted = studentsArray.sort((a, b) => a.id - b.id);
   
-  console.log("Sorted students:", sorted);
   return sorted;
 });
 

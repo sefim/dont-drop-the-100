@@ -258,6 +258,7 @@ const saveSubcategory = async () => {
       })
     }
     cancelSubcategory()
+    router.push(`/`)
   } catch (error) {
     console.error('Error saving subcategory:', error)
     alert('שגיאה בשמירת תת-הקטגוריה. אנא נסה שוב.')
