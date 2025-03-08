@@ -90,7 +90,7 @@
 
     <!-- Import Students Modal -->
     <div v-if="showImportModal" class="modal">
-      <div class="modal-content">
+      <div class="modal-content import-modal">
         <h2>ייבא תלמידים</h2>
         
         <div class="import-method">
@@ -116,36 +116,38 @@
           </div>
         </div>
 
-        <div class="import-content">
-          <!-- File Upload Option -->
-          <div v-if="importMethod === 'file'" class="import-option">
-            <p>בחר קובץ Excel או CSV</p>
-            <input 
-              type="file" 
-              accept=".csv,.xlsx,.xls"
-              @change="handleFileUpload"
-              class="file-input"
-            />
+        <div class="scrollable-content">
+          <div class="import-content">
+            <!-- File Upload Option -->
+            <div v-if="importMethod === 'file'" class="import-option">
+              <p>בחר קובץ Excel או CSV</p>
+              <input 
+                type="file" 
+                accept=".csv,.xlsx,.xls"
+                @change="handleFileUpload"
+                class="file-input"
+              />
+            </div>
+
+            <!-- Manual Input Option -->
+            <div v-if="importMethod === 'manual'" class="import-option">
+              <p>הכנס רשימת שמות (שם בכל שורה)</p>
+              <textarea 
+                v-model="manualStudentList"
+                @input="processManualList"
+                rows="10"
+                placeholder="לדוגמה:&#10;ישראל ישראלי&#10;דוד דוידוב&#10;יעל יעלי"
+                class="student-list-input"
+              ></textarea>
+            </div>
           </div>
 
-          <!-- Manual Input Option -->
-          <div v-if="importMethod === 'manual'" class="import-option">
-            <p>הכנס רשימת שמות (שם בכל שורה)</p>
-            <textarea 
-              v-model="manualStudentList"
-              @input="processManualList"
-              rows="10"
-              placeholder="לדוגמה:&#10;ישראל ישראלי&#10;דוד דוידוב&#10;יעל יעלי"
-              class="student-list-input"
-            ></textarea>
-          </div>
-        </div>
-
-        <div class="preview-section" v-if="studentsToImport.length > 0">
-          <h3>תצוגה מקדימה</h3>
-          <div class="students-preview">
-            <div v-for="(student, index) in studentsToImport" :key="index" class="student-preview-item">
-              {{ student.name }}
+          <div class="preview-section" v-if="studentsToImport.length > 0">
+            <h3>תצוגה מקדימה</h3>
+            <div class="students-preview">
+              <div v-for="(student, index) in studentsToImport" :key="index" class="student-preview-item">
+                {{ student.name }}
+              </div>
             </div>
           </div>
         </div>
@@ -570,7 +572,22 @@ onMounted(initializeComponent)
   padding: 30px;
   border-radius: 12px;
   width: 90%;
-  max-width: 400px;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.import-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+  margin: 20px -10px 20px 0;
 }
 
 .form-group {
@@ -593,10 +610,13 @@ onMounted(initializeComponent)
 }
 
 .modal-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  background: white;
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  margin-top: 20px;
 }
 
 .save-button {
@@ -658,6 +678,7 @@ onMounted(initializeComponent)
   background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
+  
 }
 
 .import-option p {
