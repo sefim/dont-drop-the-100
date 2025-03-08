@@ -1,16 +1,17 @@
 export interface User {
   id: number;
   name: string;
+  email: string;
+  avatar: string;
+  role: 'student' | 'teacher';
 }
 
-export interface DbUser extends User{
-  auth_user_id?: string
+export interface AuthUser {
+  id: string;
+  email?: string;
+  user_metadata: any;
+
 }
-
-export interface Teacher extends User {
-
-}
-
 export interface Student extends User {
   dailyPoints: number;
   weeklyPoints: number;
@@ -86,11 +87,9 @@ export interface ShopPageState {
 
 export interface AdminPageState {
   classes: Class[]
-  teachers: Teacher[]
   showAddClass: boolean
   showAddTeacher: boolean
   editingClass: Class | null
-  editingTeacher: Teacher | null
   classForm: {
     name: string
     school_name: string

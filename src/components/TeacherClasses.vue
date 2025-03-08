@@ -1,11 +1,11 @@
 <template>
   <div class="teacher-classes">
     <div class="header">
-      <div v-if="user" class="user-info">
+      <div v-if="studentsStore.currentAuthUser" class="user-info">
         <div class="avatar-menu">
           <img 
-            :src="user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`" 
-            :alt="user.user_metadata?.full_name || user.email"
+            :src="studentsStore.currentAuthUser.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${studentsStore.currentAuthUser.email}`" 
+            :alt="studentsStore.currentAuthUser.user_metadata?.full_name || studentsStore.currentAuthUser.email"
             class="user-avatar"
             @click="showMenu = !showMenu"
           />
@@ -96,7 +96,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
-import type { User } from '@supabase/supabase-js'
 import { useStudentsStore } from '../store/studentsStore'
 
 
@@ -110,7 +109,6 @@ interface Class {
 const studentsStore = useStudentsStore()
 const route = useRoute()
 const router = useRouter()
-const user = ref<User | null>(null)
 const showMenu = ref(false)
 const showAddClass = ref(false)
 const editingClass = ref<Class | null>(null)
@@ -168,21 +166,12 @@ const saveClass = async () => {
 
       if (createError) throw createError
 
-      // Get current user's ID
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_user_id', user.value?.id)
-        .single()
-
-      if (!userData) throw new Error('User not found')
-
       // Add user to class
       const { error: linkError } = await supabase
         .from('class_users')
         .insert({
           class_id: newClass.id,
-          user_id: userData.id
+          user_id: studentsStore.currentUser.id
         })
 
       if (linkError) throw linkError
@@ -267,6 +256,7 @@ const goToStudents = (class_: Class) => {
 
 const initializeComponent = async () => {
   await studentsStore.loadClasses()
+  await studentsStore.loadUser()
   
   // Only redirect if coming from login (not from a class page)
   if (studentsStore.classes.length === 1 && route.meta.from_name !== 'class') {

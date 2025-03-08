@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../supabaseClient'
 import type { TeacherClassesState } from '../types'
 
 export function useTeacherClasses() {
@@ -58,59 +57,6 @@ export function useTeacherClasses() {
   //   })) || []
   // }
 
-  const loadClasses = async () => {
-    try {
-      state.value.isLoading = true
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id, name')
-        .eq('auth_user_id', session.user.id)
-        .single()
-
-      if (!userData) return
-
-      state.value.user = userData
-
-      const { data: classesData } = await supabase
-        .from('class_users')
-        .select(`
-          classes (
-            id,
-            name,
-            school_name
-          )
-        `)
-        .eq('user_id', userData.id)
-
-      if (classesData) {
-        // If there's only one class, navigate directly to it
-        if (classesData.length === 1 && classesData[0].classes) {
-          router.push(`/class/${classesData[0].classes[0].id}`)
-          return
-        }
-
-        // Otherwise, load all classes with their logs
-        // const classesWithLogs = await Promise.all(
-        //   classesData.map(async (item) => {
-        //     const logs = await loadClassLogs(item.classes[0].id)
-        //     return {
-        //       ...item.classes,
-        //       logs
-        //     }
-        //   })
-        // )
-        // state.value.classes = classesWithLogs
-      }
-    } catch (error) {
-      console.error('Error loading classes:', error)
-    } finally {
-      state.value.isLoading = false
-    }
-  }
-
   const goToClass = (classId: number) => {
     router.push(`/class/${classId}`)
   }
@@ -119,7 +65,6 @@ export function useTeacherClasses() {
     state,
     formatDate,
     formatTime,
-    loadClasses,
     goToClass
   }
 }

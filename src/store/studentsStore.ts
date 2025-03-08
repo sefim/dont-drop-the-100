@@ -1,15 +1,19 @@
 import { defineStore } from 'pinia'
 import { supabase } from '../supabaseClient';
-import { Class, StudentDictionary } from '../types';
+import { AuthUser, Class, StudentDictionary, User } from '../types';
 
 export const useStudentsStore = defineStore('studentsStore', {
   state: () => ({
     classes: [] as Class[],
     students: {} as StudentDictionary,
     currentClass : {} as Class,
+    currentUser: {} as User,
+    currentAuthUser: {} as AuthUser
   }),
   actions: {
     async loadStudents(classId: number) {
+        this.loadAuthUser()
+        this.loadUser()
         this.loadClass(classId)
         console.log(`[loadStudents] Starting to load students for class ${classId}`)
         
@@ -21,6 +25,8 @@ export const useStudentsStore = defineStore('studentsStore', {
               users!inner (
                 id,
                 name,
+                role,
+                email,
                 avatar,
                 user_points (
                   daily_points,
@@ -44,6 +50,8 @@ export const useStudentsStore = defineStore('studentsStore', {
               studentDict[student.id] = {
                 id: student.id,
                 name: student.name,
+                email: student.email,
+                role: student.role,
                 dailyPoints: points.daily_points ?? 100,
                 weeklyPoints: points.weekly_points ?? 0,
                 avatar: student.avatar 
@@ -115,6 +123,30 @@ export const useStudentsStore = defineStore('studentsStore', {
         } catch (error) {
           console.error('Error loading classes:', error)
         }
-      }
+      },
+      async loadUser() {      
+        // Get student data
+        const { data: userData } = await supabase
+        .from('users')
+        .select(`id, name, role, email, avatar`)
+        .eq('email', this.currentAuthUser.email)
+        .single()
+        
+        if (userData) {
+          this.currentUser = userData
+        } else {
+          console.error('Error: userData is null')
+        }
+      },
+      async loadAuthUser() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        if (user) {
+          this.currentAuthUser = user
+        } else {
+          console.error('Error: user is null')
+        }
+      },
   }
 })
