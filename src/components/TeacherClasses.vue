@@ -28,7 +28,7 @@
 
     <div class="classes-grid">
       <div 
-        v-for="class_ in classes" 
+        v-for="class_ in studentsStore.classes" 
         :key="class_.id"
         class="class-card"
       >
@@ -94,9 +94,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../supabaseClient'
 import type { User } from '@supabase/supabase-js'
+import { useStudentsStore } from '../store/studentsStore'
+
 
 interface Class {
   id: number
@@ -105,12 +107,9 @@ interface Class {
   points: number | null
 }
 
-interface ClassUserResponse {
-  classes: Class[]
-}
-
+const studentsStore = useStudentsStore()
+const route = useRoute()
 const router = useRouter()
-const classes = ref<Class[]>([])
 const user = ref<User | null>(null)
 const showMenu = ref(false)
 const showAddClass = ref(false)
@@ -133,40 +132,6 @@ const goToCategories = (classId: number) => {
 const goToShop = (classId: number) => {
   if (classId) {
     router.push(`/class/${classId}/shop`)
-  }
-}
-const loadClasses = async () => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-
-    user.value = session.user
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('id')
-      .eq('auth_user_id', session.user.id)
-      .single()
-    
-    if (!userData) return
-
-    const { data: classesData } = await supabase
-      .from('class_users')
-      .select(`
-        classes (
-          id,
-          name,
-          school_name,
-          points
-        )
-      `)
-      .eq('user_id', userData.id)
-    
-    if (classesData) {
-      classes.value = classesData.flatMap((item: ClassUserResponse) => item.classes)
-    }
-  } catch (error) {
-    console.error('Error loading classes:', error)
   }
 }
 
@@ -223,7 +188,7 @@ const saveClass = async () => {
       if (linkError) throw linkError
     }
 
-    await loadClasses()
+    await studentsStore.loadClasses()
     cancelClassModal()
   } catch (error) {
     console.error('Error saving class:', error)
@@ -269,7 +234,7 @@ const deleteClass = async (classId: number) => {
 
       if (error) throw error
 
-      await loadClasses()
+      await studentsStore.loadClasses()
     } catch (error) {
       console.error('Error deleting class:', error)
       alert('שגיאה במחיקת הכיתה. אנא נסה שוב.')
@@ -299,7 +264,18 @@ const goToClass = (classId: number) => {
 const goToStudents = (class_: Class) => {
   router.push(`/class/${class_.id}/students`)
 }
-onMounted(loadClasses)
+
+const initializeComponent = async () => {
+  await studentsStore.loadClasses()
+  
+  // Only redirect if coming from login (not from a class page)
+  if (studentsStore.classes.length === 1 && route.meta.from_name !== 'class') {
+    router.push(`/class/${studentsStore.classes[0].id}`)
+  }
+}
+
+onMounted(initializeComponent)
+onMounted(studentsStore.loadClasses)
 </script>
 
 <style scoped>

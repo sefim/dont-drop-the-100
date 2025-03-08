@@ -4,8 +4,9 @@ import { Class, StudentDictionary } from '../types';
 
 export const useStudentsStore = defineStore('studentsStore', {
   state: () => ({
+    classes: [] as Class[],
+    students: {} as StudentDictionary,
     currentClass : {} as Class,
-    students: {} as StudentDictionary
   }),
   actions: {
     async loadStudents(classId: number) {
@@ -55,7 +56,8 @@ export const useStudentsStore = defineStore('studentsStore', {
           console.error('[loadStudents] Unexpected error:', error)
         }
       },
-        async loadClass(classId: number) {
+        
+      async loadClass(classId: number) {
         if (!classId || isNaN(classId)) {
           console.error('[loadStudents] Invalid or missing class ID')
           return
@@ -76,6 +78,42 @@ export const useStudentsStore = defineStore('studentsStore', {
         this.currentClass = classData
         if (this.currentClass) {
           console.log(`[loadStudents] Found class: ${this.currentClass.name} ${this.currentClass.points}`)
+        }
+      },
+      async loadClasses() {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) return
+      
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .single()
+          
+          if (!userData) return
+      
+          const { data: classesData } = await supabase
+            .from('class_users')
+            .select(`
+              classes (
+                id,
+                name,
+                school_name,
+                points,
+                last_day
+              )
+            `)
+            .eq('user_id', userData.id)
+            interface ClassUserResponse {
+                classes: Class[]
+              }
+          if (classesData) {
+            this.classes = classesData.flatMap((item: ClassUserResponse) => item.classes)
+          }
+          console.log(`[loadClasses] Found ${this.classes.length} classes`)
+        } catch (error) {
+          console.error('Error loading classes:', error)
         }
       }
   }

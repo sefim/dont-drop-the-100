@@ -8,13 +8,13 @@ import ShopManager from '../components/ShopManager.vue'
 import AdminPage from '../components/AdminPage.vue'
 import StudentManagement from '../components/StudentManagement.vue'
 
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
       path: '/',
-      component: LandingPage
+      component: LandingPage,
+      name: 'landing',
     },
     {
       path: '/class/:class_id/category',
@@ -61,5 +61,14 @@ const router = createRouter({
     }
   ]
 })
+
+//const previousRoute = ref({ path: null });
+
+router.beforeEach((to, from, next) => {
+  console.log('from', from);
+  to.meta.from_name = from.name
+  next();
+});
+
 
 export default router
