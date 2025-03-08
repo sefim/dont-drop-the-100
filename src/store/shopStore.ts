@@ -16,6 +16,7 @@ interface CacheData {
 }
 
 export const useShopStore = defineStore('shop', () => {
+  const classShopItems = ref<ShopItem[]>([])
   const itemsRaw = ref<ShopItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -58,6 +59,9 @@ export const useShopStore = defineStore('shop', () => {
   const items = computed(() => {
     return [...itemsRaw.value].sort((a, b) => a.cost - b.cost)
   })
+  const classItems = computed(() => {
+    return [...classShopItems.value].sort((a, b) => a.cost - b.cost)
+  })
 
   const loadItems = async (classId: number) => {
     try {
@@ -79,21 +83,10 @@ export const useShopStore = defineStore('shop', () => {
         if (fetchError) throw fetchError
         if (data) {
           itemsRaw.value = data
-          saveToCache(classId, { items: data, timestamp: Date.now(), classId })
+          classShopItems.value = data.filter((item: ShopItem) => item.is_selected)
+          saveToCache(classId, { items: classShopItems.value, timestamp: Date.now(), classId })
         }
-      } else {
-        // Load all items without selection status
-        const { data, error: fetchError } = await supabase
-          .from('shop_items')
-          .select('*')
-          .order('cost', { ascending: true })
-
-        if (fetchError) throw fetchError
-        if (data) {
-          itemsRaw.value = data
-          saveToCache(classId, { items: data, timestamp: Date.now() })
-        }
-      }
+      } 
     } catch (err) {
       console.error('Error loading shop items:', err)
       error.value = err instanceof Error ? err.message : 'An error occurred'
@@ -141,6 +134,7 @@ export const useShopStore = defineStore('shop', () => {
 
   return {
     items,
+    classItems,
     loading,
     error,
     loadItems,

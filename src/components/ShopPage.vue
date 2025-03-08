@@ -6,26 +6,6 @@
     </div>
     <p>נקודות זמינות: {{ student.weeklyPoints }}</p>
 
-    <!-- Purchase History Section -->
-    <div class="purchase-history">
-      <h3>היסטוריית רכישות אחרונות</h3>
-      <div class="history-list">
-        <div v-for="purchase in purchases" :key="purchase.id" class="purchase-item">
-          <div class="purchase-details">
-            <span class="item-name">{{ purchase.subcategory }}</span>
-            <span class="item-cost negative">{{ purchase.points }}</span>
-          </div>
-          <div class="purchase-date">
-            {{ formatDate(purchase.created_at) }}
-          </div>
-        </div>
-        <div v-if="purchases.length === 0" class="no-purchases">
-          לא נמצאו רכישות קודמות
-        </div>
-      </div>
-    </div>
-
-
     <div class="score-logs">
       <h3>היסטוריית רכישות אחרונות</h3>
       
@@ -54,7 +34,7 @@
 
     <div class="shop-items">
       <div 
-        v-for="item in shopStore.items" 
+        v-for="item in shopStore.classItems" 
         :key="item.id"
         class="shop-item"
         @click="purchaseItem(item)"
