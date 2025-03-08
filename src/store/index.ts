@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../supabaseClient'
 import { useCategoryStore } from './categoryStore'
-import type { Class, UserLog, ShopItem } from '../types'
+import type { UserLog, ShopItem } from '../types'
 import router from '../router'
 import { useStudentsStore } from '../store/studentsStore'
 
