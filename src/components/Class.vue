@@ -21,7 +21,7 @@
         <h2>אל תפיל את ה 100</h2>
       </div>
       <div>
-        <button v-if="state.isSingleClass" @click="goToClasses" class="back-button">הכיתות שלי</button>  
+        <button @click="goToClasses" class="back-button">הכיתות שלי</button>  
       </div>
     </div>
     <div class="school-class-info">
