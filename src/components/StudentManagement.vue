@@ -247,6 +247,7 @@ const saveStudent = async () => {
         .from('user_points')
         .insert({
           user_id: userData.id,
+          class_id: classId.value,
           daily_points: 100,
           weekly_points: 0
         })
@@ -300,6 +301,7 @@ const saveScore = async () => {
       .from('user_points')
       .update({ weekly_points: scoreForm.value.weeklyPoints })
       .eq('user_id', selectedStudent.value.id)
+      .eq('class_id', classId.value)
 
     if (error) throw error
 
@@ -388,6 +390,7 @@ const importStudents = async () => {
         .from('user_points')
         .insert({
           user_id: userData.id,
+          class_id: classId.value,
           daily_points: 100,
           weekly_points: 0
         })

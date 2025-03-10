@@ -88,83 +88,52 @@ export const useStore = () => {
 
   const updateStudentScore = async (studentId: number, classId: number, points: number, category: string, subcategory: string) => {
     console.log(`[updateStudentScore] Updating score for student ${studentId}`)
-    try {
-      // First, ensure user_points record exists
-      const { data: currentPoints, error: pointsError } = await supabase
-        .from('user_points')
-        .select('*')
-        .eq('user_id', studentId)
-        .single()
+    // Calculate new points
+    const studentsStore = useStudentsStore()
+    
+    const newDailyPoints = studentsStore.students[studentId]?.dailyPoints + points
+    console.log('studentsStore', studentsStore.students[studentId].dailyPoints, points, newDailyPoints,studentId,classId)
+    // Update points
+    const { error: updateError } = await supabase
+      .from('user_points')
+      .update({
+        daily_points: newDailyPoints,
+        last_update: new Date().toISOString()
+      })
+      .eq('user_id', studentId)
+      .eq('class_id', classId)
 
-      let dailyPoints = 100
-
-      // If no record exists, create one with default values
-      if ((pointsError && pointsError.code === '406') || !currentPoints || currentPoints.length === 0) {
-        const { error: insertError } = await supabase
-          .from('user_points')
-          .insert({
-            user_id: studentId,
-            class_id: classId,
-            daily_points: 100,
-            weekly_points: 0,
-            last_update: new Date().toISOString()
-          })
-
-        if (insertError) {
-          console.error('[updateStudentScore] Error creating user points:', insertError)
-          return
-        }
-      } else {
-        dailyPoints = currentPoints.daily_points
-      }
-
-      // Calculate new points
-      const newDailyPoints = dailyPoints + points
-
-      // Update points
-      const { error: updateError } = await supabase
-        .from('user_points')
-        .update({
-          daily_points: newDailyPoints,
-          last_update: new Date().toISOString()
-        })
-        .eq('user_id', studentId)
-        .eq('class_id', classId)
-
-      if (updateError) {
-        console.error('[updateStudentScore] Error updating points:', updateError)
-        return
-      }
-
-      // Log the score change
-      const { error: logError } = await supabase
-        .from('user_logs')
-        .insert({
-          user_id: studentId,
-          class_id: classId,
-          points,
-          category,
-          subcategory,
-          created_at: new Date().toISOString()
-        })
-
-      if (logError) {
-        console.error('[updateStudentScore] Error creating log:', logError)
-        return
-      }
-      const studentsStore = useStudentsStore()
-      // Update local state
-      if (studentsStore.students[studentId]) {
-        studentsStore.students[studentId] = {
-          ...studentsStore.students[studentId],
-          dailyPoints: newDailyPoints
-        }
-      }
-
-      console.log('[updateStudentScore] Successfully updated student score')
-    } catch (error) {
-      console.error('[updateStudentScore] Unexpected error:', error)
+    if (updateError) {
+      console.error('[updateStudentScore] Error updating points:', updateError)
+      return
     }
+
+    // Log the score change
+    const { error: logError } = await supabase
+      .from('user_logs')
+      .insert({
+        user_id: studentId,
+        class_id: classId,
+        points,
+        category,
+        subcategory,
+        created_at: new Date().toISOString()
+      })
+
+    if (logError) {
+      console.error('[updateStudentScore] Error creating log:', logError)
+      return
+    }
+    
+    // Update local state
+    if (studentsStore.students[studentId]) {
+      studentsStore.students[studentId] = {
+        ...studentsStore.students[studentId],
+        dailyPoints: newDailyPoints
+      }
+    }
+
+    console.log('[updateStudentScore] Successfully updated student score')
   }
 
   const endDay = async () => {
@@ -216,6 +185,7 @@ export const useStore = () => {
             daily_points: 100
           })
           .eq('user_id', userId)
+          .eq('class_id', studentsStore.currentClass.id)
         
         if (studentError) {
           console.error('Error updating student end day:', studentError)
@@ -275,6 +245,7 @@ export const useStore = () => {
           .from('user_points')
           .update({ weekly_points: 0, daily_points: 100 })
           .eq('user_id', user.user_id)
+          .eq('class_id', classId)
 
         if (error) {
           console.error(`Error resetting weekly points for user ${user.user_id}:`, error)
