@@ -65,8 +65,6 @@
       <button 
         @click="store.endDay" 
         class="end-day-button"
-        :disabled="!store.canEndDay.value"
-        :class="{ 'disabled': !store.canEndDay.value }"
       >
         סיום יום
       </button>

@@ -138,28 +138,28 @@ export const useStore = () => {
 
   const endDay = async () => {
     const studentsStore = useStudentsStore()
-    console.log('Ending Day - Processing end of day calculations')
-    if (!studentsStore.currentClass) return
+    // console.log('Ending Day - Processing end of day calculations')
+    // if (!studentsStore.currentClass) return
 
-    // check if already last day was updated
-    const { data: classData, error: classError } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('id', studentsStore.currentClass.id)
-      .single()
+    // // check if already last day was updated
+    // const { data: classData, error: classError } = await supabase
+    //   .from('classes')
+    //   .select('*')
+    //   .eq('id', studentsStore.currentClass.id)
+    //   .single()
 
-    if (classError || !classData) {
-      console.error('[endDay] Error fetching class:', classError)
-      return
-    }
+    // if (classError || !classData) {
+    //   console.error('[endDay] Error fetching class:', classError)
+    //   return
+    // }
 
-    studentsStore.currentClass = classData
-    if (canEndDay.value === false) {
-      console.log('Already updated last day')
-      alert('היום כבר נסגר')
-      router.go(0)
-      return
-    }
+    // studentsStore.currentClass = classData
+    // if (canEndDay.value === false) {
+    //   console.log('Already updated last day')
+    //   alert('היום כבר נסגר')
+    //   router.go(0)
+    //   return
+    // }
     
     
     try {
